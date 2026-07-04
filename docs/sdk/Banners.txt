@@ -1,0 +1,136 @@
+Banners
+The banner module contains functionality for displaying banners within your game.
+
+Requirements for Advertisements
+
+Please be sure to read our advertisement requirements, since your game will be rejected without any feedback if it doesn't follow them.
+
+Getting started
+After reading our SDK Introduction page for your engine, access the banner module like this:
+
+
+HTML5
+Unity
+GameMaker
+Construct
+Godot
+Cocos
+window.CrazyGames.SDK.banner
+
+Request static banner
+This paragraph explains how to request static banners. There are 5 banner sizes available:
+
+Leaderboard (728x90)
+Medium (300x250)
+Mobile (320x50)
+Main (468x60)
+Large Mobile (320x100)
+
+HTML5
+Unity
+GameMaker
+Construct
+Godot
+Cocos
+To begin, you need to have an HTML container of the banner size present on the screen:
+
+<div id="banner-container" style="width: 300px; height: 250px"></div>
+And fill that using javascript:
+try {
+  // await is not mandatory when requesting banners,
+  // but it will allow you to catch errors
+  await window.CrazyGames.SDK.banner.requestBanner({
+    id: "banner-container",
+    width: 300,
+    height: 250,
+  });
+} catch (e) {
+  console.log("Banner request error", e);
+}
+
+Request responsive banner
+The responsive banners feature will request ads that fit into your container, without the need to specify or select a size beforehand. The resulting banners will have one of the following sizes:
+
+970x90
+320x50
+160x600
+336x280
+728x90
+300x600
+468x60
+970x250
+300x250
+250x250
+120x600
+Only banners that fit into your container will be displayed, if your container cannot fit any of these sizes no ad will be rendered. The rendered banner is automatically vertically and horizontally centered into your container.
+
+
+HTML5
+Unity
+GameMaker
+Construct
+Godot
+Cocos
+Set your container size to a non-null value:
+
+<div id="responsive-banner-container" style="width: 500px; height: 500px"></div>
+Request the responsive banner:
+try {
+  // await is not mandatory when requesting banners, but it will allow you to catch errors
+  await window.CrazyGames.SDK.banner.requestResponsiveBanner("responsive-banner-container");
+} catch (e) {
+  console.log("Error on request responsive banner", e);
+}
+
+Errors
+Requesting a banner can also throw an error, for example:
+
+{
+    "code": "bannerCooldown",
+    "message": "A banner has already been requested for container banner-container-crazygames-inner less than 30 seconds ago, please wait.",
+    "containerId": "banner-container-crazygames-inner"
+}
+Possible error codes:
+
+bannersDisabledBasicLaunch - during Basic Launch banners are disabled
+unfilled - no banner available
+missingId - the banner id wasn't provided
+notVisible - the banner container is not fully visible on page, please ensure it doesn't go out of the page and it is not hidden
+noAvailableSizes - the requested responsive banner size doesn't fit any of our available sizes
+notCreated - the banner container is not present on the page
+videoAdPlaying - banners cannot be rendered/refreshed while a video ad is playing
+invalidSize - banner size is not valid, please use only the available sizes
+bannerCooldown - banners cannot be refreshed too quickly, please allow for some time, normally 30 seconds, before refreshing the same container banner
+maxRefreshReached - you reached the banner refresh limit per gaming session
+bannersDisabledMobileApp - banners cannot be rendered when your game is embedded in the mobile app
+other
+Refreshing & clearing banners
+
+HTML5
+Unity
+GameMaker
+Construct
+Godot
+Cocos
+To refresh the banners, simply call the requestBanner or requestResponsiveBanner methods again with the same container id.
+
+The banners have the following limitations:
+
+There is a minimum delay of 30 seconds between banner refreshes. If you call the request banner methods more often, you will receive the following error: A banner has already been requested for container banner-container less than 30 seconds ago, please wait.
+During a gaming session the banners can be refreshed up to 120 times (this applies to each banner size separately).
+Clearing the banners
+
+The SDK provides 2 methods for clearing the banners:
+
+window.CrazyGames.SDK.banner.clearBanner("banner-container");
+// or
+window.CrazyGames.SDK.banner.clearAllBanners();
+We recommend that you clear the banners after hiding them. Otherwise, when you request new banners again, the old banners may still appear for a fraction of a second, which negatively impacts the user experience.
+
+
+Limitations
+Banners won't display if they do not follow any of these rules:
+
+The same banner can be re-displayed only 30 seconds after the last display.
+The banner has to be fully inside the game window.
+Made with Material for MkDocs

@@ -1,0 +1,239 @@
+The game module contains various functionality related to the game. After reading our SDK Introduction page for your engine, access the game module like this:
+
+
+HTML5
+Unity
+GameMaker
+Construct
+Godot
+Cocos
+window.CrazyGames.SDK.game;
+
+Game Settings
+The game module contains a settings object, that can be accessed like this:
+
+A Full Implementation requires muteAudio support for HTML5, Unity, Cocos, and Construct games.
+
+
+HTML5
+Unity
+GameMaker
+Construct
+Godot
+Cocos
+window.CrazyGames.SDK.game.settings;
+The settings object contains:
+disableChat - if true, the game should disable chat (if applicable). Read more about chat on multiplayer requirements page. Locally you can use ?disableChat=true to force this to true.
+muteAudio - please disable the game audio if this is true. Locally you can use ?muteAudio=true to force this to true. This setting should take priority over your in-game audio settings. So, for example, if you also offer an "Audio On/Off" toggle in game, be sure this doesn't enable the audio back if it is disabled in the SDK settings.
+You can also register a listener which will be called each time the game settings change:
+
+function listener(newSettings){
+    console.log("Settings updated", newSettings);
+}
+
+// to add a listener
+window.CrazyGames.SDK.game.addSettingsChangeListener(listener);
+
+// to remove a listener
+window.CrazyGames.SDK.game.removeSettingsChangeListener(listener);
+
+Gameplay start/stop
+We provide functions that enable us to track when and how users are playing your games. These can be used to ensure our site does not perform resource intensive actions while a user is playing.
+
+The gameplay start function has to be called whenever the player starts playing or resumes playing after a break (game start, resume, revive, enter next level, ...). The first event is used to determine your game's initial loading size.
+
+The gameplay stop function has to be called on every game break (entering a menu, ending level, pausing the game, ...) don't forget to call gameplay start when the gameplay resumes. Don't call this event when the user switches focus or leaves the game area (we handle this on our side).
+
+You can call the methods like this:
+
+
+HTML5
+Unity
+GameMaker
+Construct
+Godot
+Cocos
+window.CrazyGames.SDK.game.gameplayStart();
+window.CrazyGames.SDK.game.gameplayStop();
+
+Game loading start/stop
+We provide functions that enable us to track when and how long the loading of your game takes.
+
+The loading start function has to be called whenever you start loading your game.
+
+The loading stop function has to be called when the loading is complete and eventually the gameplay starts.
+
+
+HTML5
+Unity
+GameMaker
+Construct
+Godot
+Cocos
+window.CrazyGames.SDK.game.loadingStart();
+window.CrazyGames.SDK.game.loadingStop();
+
+Happy time
+The happytime() method can be called on various player achievements (beating a boss, reaching a highscore, etc.). It makes the website celebrate (for example by launching some confetti). There is no need to call this when a level is completed, or an item is obtained.
+
+Info
+
+Use this feature sparingly, the celebration should remain a special moment.
+
+
+HTML5
+Unity
+GameMaker
+Construct
+Godot
+Cocos
+window.CrazyGames.SDK.game.happytime();
+
+Game context
+Users can send feedback related to your game, which is sent to you via an email, and can be also viewed on our Developer Portal.
+
+To make this feedback more actionable, you can use the setGameContext method to attach relevant in-game data. For example, you might include the user's current level, equipped weapon, gold amount, or active skins.
+
+Providing this context makes it significantly easier to understand and reproduce issues. For instance, if a user reports being stuck but doesn't specify where, the attached data can immediately reveal the exact level and game state.
+
+
+HTML5
+Unity
+GameMaker
+Construct
+Godot
+Cocos
+// this can be called at the start of the level
+window.CrazyGames.SDK.game.setGameContext({
+    "level": 12
+});
+
+// don't forget to clear the context when not relevant anymore, for example if the user exists the level
+window.CrazyGames.SDK.game.clearGameContext();
+
+Multiplayer features
+This section describes the game specific SDK functionality supporting our Multiplayer Requirements. Refer to that page for additional context on mandatory/optional requirements.
+
+Demo game
+
+We also created a demo game that showcases various multiplayer features from our SDK. You can download the source code from here.
+
+Instant multiplayer
+The game module contains the isInstantMultiplayer flag that indicates if you should direct the user into multiplayer mode, in a joinable location directly.
+
+
+HTML5
+Unity
+GameMaker
+Construct
+Godot
+Cocos
+// this field was previously called isInstantJoin which is now deprecated,
+// please use isInstantMultiplayer
+window.CrazyGames.SDK.game.isInstantMultiplayer;
+
+Room data
+We define the room as a unique location where the user is playing or waiting in your game. Having room information available on platform level allows us to improve the user experience through showing an invite button, platform notifications, status visualization, joining friends, listing other CrazyGames users in your room to make friends connections, and more. The room doesn't have to exist on the server, you could also consider a room a special case when some players are connected to each other directly, via WebRTC for example.
+
+The room contains the following data:
+
+roomId - unique identifier for this room. If your game supports multiple regions, please ensure the roomId you report is unique across the regions, for example by joining the actual room id with the region id.
+isJoinable - allows the current player to invite other players or be joined by other players
+inviteParams - these will be passed to other players who accept an invitation, or join this player. Read more about the inviteParams in the room join listener section.
+
+HTML5
+Unity
+GameMaker
+Construct
+Godot
+Cocos
+// the player joins a room
+window.CrazyGames.SDK.game.updateRoom({ roomId: "123eu" });
+
+// the room is now open, the current player can invite other players or be joined by other players
+// the inviteParams are just an example, you may have other parameters required to join a specific room
+window.CrazyGames.SDK.game.updateRoom({ isJoinable: true, inviteParams: { roomName: "123", region: "eu" }});
+
+// the room is full and no more players can join
+window.CrazyGames.SDK.game.updateRoom({ isJoinable: false});
+
+// the player left the room
+window.CrazyGames.SDK.game.leftRoom();
+
+// you can always mix more parameters, for example if the player joins a room and the room is already joinable
+window.CrazyGames.SDK.game.updateRoom({ roomId: "123eu", isJoinable: true, inviteParams: { roomName: "123", region: "eu" }});
+
+Room join listener
+When the user tries to join their friends via an invite notification, invite link or friends drawer, there are 2 possible scenarios:
+
+The user is already in game. In this case the room join listener will be triggered.
+The user is redirected to the game page, and the game has to load. Use the inviteParams in this case.
+
+HTML5
+Unity
+GameMaker
+Construct
+Godot
+Cocos
+// don't forget to check window.CrazyGames.SDK.game.inviteParams on game start
+// if it is not null, your game was already started from an invite link, and you should send the player to the correct room
+
+function listener(inviteParams){
+    // send the user to the multiplayer room
+}
+
+// to add a listener
+window.CrazyGames.SDK.game.addJoinRoomListener(listener);
+
+// to remove a listener
+window.CrazyGames.SDK.game.removeJoinRoomListener(listener);
+
+Invite link
+This feature lets you share the CrazyGames version of your game to the players and invite them to join a multiplayer game. You can call invite link with a map of parameters that correspond to your game or game room. If your game only accepts players from the same region, you can add region as a parameter to the link. That way you can easily handle the scenario when users attempt to join from a different region.
+
+
+HTML5
+Unity
+GameMaker
+Construct
+Godot
+Cocos
+const link = window.CrazyGames.SDK.game.inviteLink({
+    roomName: 12345,
+    param2: "value",
+    param3: "value",
+});
+console.log("Invite link", link);
+The invite link parameters can be retrieved with the help of the getInviteParam method, for example:
+// returns either a string or null if the parameter is missing
+window.CrazyGames.SDK.game.getInviteParam("roomName");
+You can also access all invite parameters like this:
+
+window.CrazyGames.SDK.game.inviteParams
+inviteParams is null if the game wasn't started from an invite link.
+
+Invite button
+Deprecated
+
+This feature is replaced by the Room Data functionality and will be deprecated.
+
+This feature indicates that the user is in a multiplayer room and can be joined.
+
+
+HTML5
+Unity
+GameMaker
+Construct
+Godot
+Cocos
+const link = window.CrazyGames.SDK.game.showInviteButton({
+    roomName: 12345,
+    param2: "value",
+    param3: "value",
+});
+// the returned link looks the same as the link
+// returned by the inviteLink method
+console.log("Invite button link", link);
+Make sure to hide the invite button when the user can't be joined anymore (e.g. the room is full, the game has started or the lobby was canceled).
+
+window.CrazyGames.SDK.game.hideInviteButton();

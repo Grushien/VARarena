@@ -1,0 +1,23 @@
+VASVÁR ARÉNA — Bajnokok Kora
+=============================
+
+A JÁTÉK INDÍTÁSA:
+  Dupla katt a JATEK_INDITASA.bat fájlra!
+  (Egy fekete ablak nyílik — azt hagyd nyitva, amíg játszol.)
+
+FONTOS:
+  Az index.html-t NE közvetlenül nyisd meg (dupla kattal),
+  mert úgy a böngésző biztonsági okokból nem tölti be a 3D
+  karaktermodelleket (models mappa), és csak a tartalék
+  robot-figurák jelennek meg.
+
+  A JATEK_INDITASA.bat egy helyi mini-szervert indít
+  (ehhez Python kell a gépre — nálad telepítve van),
+  és azon keresztül minden rendesen betölt.
+
+MAPPÁK:
+  index.html      — a játék
+  js/battle3d.js  — 3D harctér
+  models/         — KayKit 3D modellek (CC0 licenc)
+  docs/sdk/       — CrazyGames SDK doksik (kiadáshoz)
+  ROADMAP.md      — fejlesztési terv

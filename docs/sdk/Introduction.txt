@@ -1,0 +1,105 @@
+When integrating the CrazyGames SDK, make sure to follow our requirements. They will help you use the SDK in the best way possible and guide you in terms of technical, gameplay, ads and account integration requirements.
+
+Our HTML5, Unity, and Godot SDKs support all the scenarios. Other SDKs miss certain functionalities for which you can usually manage at least basic integration through the HTML5 version. Most game engines that support WebGL also have a way of interacting with JavaScript when running in browser.
+
+The SDK has the following modules:
+
+
+HTML5
+Unity
+GameMaker
+Construct
+Godot
+Cocos
+ad	display video ads & detect adblockers	🟩 Fully supported
+banner	display banners	🟩 Fully supported
+game	various game events and integration	🟩 Fully supported
+user	interact with logged in user	🟩 Fully supported
+data	store user data that persists across devices	🟩 Fully supported
+In-game Purchases	handle in-game purchases (not a separate module)	🟩 Fully supported
+
+Getting started
+This section explains how to get the CrazyGames SDK up and running in your engine.
+
+
+HTML5
+Unity
+GameMaker
+Construct
+Godot
+Cocos
+You can install the SDK by including the following script in the head of your game's index.html:
+
+<!-- Load the SDK before your game code -->
+<script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
+Manual initialization
+
+The v3 SDK requires initialization before being used. This can be done by calling the init method:
+
+await window.CrazyGames.SDK.init();
+It is important to await for the initialization since it happens asynchronously, and the SDK is unusable until initialized. We recommend that you do this before the game starts, for example on the loading screen.
+
+Promises
+
+The SDK relies on promises and doesn't accept a callback parameter. If you don't have the possibility to use await, you can call the async methods with .then(...).catch(...), like in the example below:
+
+// await example
+try {
+    const user = await window.CrazyGames.SDK.user.getUser();
+    console.log(user);
+} catch (e) {
+    console.log("Get user error: ", e);
+}
+
+// .then .catch example
+window.CrazyGames.SDK.user
+    .getUser()
+    .then((user) => console.log(user))
+    .catch((e) => console.log("Get user error: ", e));
+The HTML5 SDK docs will contain only examples using await.
+
+
+Important information
+Don't miss this section with important information regarding your engine
+
+
+HTML5
+Unity
+GameMaker
+Construct
+Godot
+Cocos
+Major changes when migrating from v2 to v3
+
+You can find the docs for the old HTML5 v2 SDK here.
+
+The SDK requires to be manually initialized now
+Some async get methods are now simple variables:
+window.CrazyGames.SDK.environment
+window.CrazyGames.SDK.user.isUserAccountAvailable
+window.CrazyGames.SDK.user.systemInfo
+Methods to report loading changed from sdkGameLoadingStart() and sdkGameLoadingStop() to loadingStart() and loadingStop()
+The v2 SDK was throwing inconsistent errors (strings or objects). The v3 SDK has now the following error format:
+
+// there is always a "code" and a "message" containing more information
+{code: 'userAlreadySignedIn', message: 'The user is already signed in'}
+
+Development & Testing
+During the development, you will be running your game on different domains/environments:
+
+localhost - our SDKs work fine on localhost domains, where they display demo ads/banners and try to simulate other behaviour.
+editors - this applies to Unity, Construct, Cocos, etc. In editors our SDKs will also display demo ads/banners and try to simulate other behaviour.
+Preview tool - our QA environment (on crazygames.com/preview) offers the most realistic version of CrazyGames.com. After you've finished integrating the SDK, create a new game on Developer Portal, upload your files, and you will be able to preview your game. Obtaining a working Xsolla token is possible only here.
+
+HTML5
+Unity
+GameMaker
+Construct
+Godot
+Cocos
+The localhost and 127.0.0.1 domains are considered local environments. Advertisements are not available. Instead, an overlay text will be displayed. For other events such as happy time, gameplay start, etc. the console output can be consulted. If you are using a different domain/ip for local development, you can always enforce the local environment by appending the ?useLocalSdk=true query parameter to the URL in your browser.
+On CrazyGames domains the SDK has the crazygames environment, where it functions properly.
+On any other domains (including your domain on which you may host your game) the SDK has the disabled environment. All the calls to the SDK methods will throw an error. To prevent this, we recommend checking on which environment the SDK is running and avoiding making use of it outside local or crazygames environments.
+The environment can be retrieved like this:
+
+window.CrazyGames.SDK.environment;

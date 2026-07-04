@@ -1,0 +1,610 @@
+Leaderboards
+Leaderboards allow players to compete globally, track their progress, and earn seasonal awards. Games with leaderboards enabled get additional visibility through a dedicated page in the sidebar, homepage carousels and widgets.
+
+Warning
+
+The leaderboard feature is only available for invited games.
+
+Warning
+
+Only one leaderboard per game is supported.
+
+Key Features:
+
+Weekly Seasons: Seasons run Monday to Monday, ending at 9:00 AM UTC with automatic score reset
+Multi-Tiered Rankings: Players can view their rank globally, by country, and among friends
+Seasonal Awards: Trophies awarded for top positions (1st, 2nd, 3rd) and top percentiles (1%, 5%, 10%)
+Flexible Configuration: Choose score type (points, time, XP, KDA), sorting direction, and whether scores are incremental
+Platform Integration: Leaderboard widgets appear on game pages and user profiles
+Platform Visibility
+The leaderboard system integrates seamlessly into the CrazyGames platform.
+
+
+Leaderboard Drawer
+Game Page Widget
+User Profile Awards
+Leaderboard Drawer
+
+
+Score Submission Approaches
+There are two ways to submit scores to a CrazyGames leaderboard:
+
+Client-side via the SDK — scores are submitted directly from the game client. No backend required, but scores can be manipulated since the client is not a trusted environment.
+Server-side via the API — scores are submitted from your backend server. Recommended if you have a server, as validation happens server-side and cannot be bypassed by the client.
+The configuration below reflects both approaches: the Encryption Key is used for client-side submissions, while the API Key is used for server-side submissions.
+
+Choose the integration guide that matches your setup:
+
+Client-only games — no backend server, submit scores directly from the game client using the SDK
+Games with a server — submit scores from your backend using the Leaderboard API
+Leaderboard Configuration
+These are the settings for the leaderboard in your game.
+
+Warning
+
+At least one between Encryption Key and API Key is required in your configuration. Encryption Key is used for submitting score via the SDK, while API Key is used for submitting scores via the API.
+
+Required parameters:
+
+Leaderboard Guide: A short text shown to players explaining how to get ranked in the CrazyGames leaderboards. Max length: 50 characters
+Indicates which mode, level, or game type the leaderboard refers to
+Explains what players need to do to compete or achieve a higher score
+Examples:
+"Endless Mode - Survive as long as possible"
+"Finish the race as fast as possible"
+Encryption Key (optional): 32-byte base64-encoded string (chosen by game developers)
+Used for client-side score encryption
+Same key across all environments
+Can be generated automatically on the Developer portal via a button next to the input field for it
+Example: "dGhpcyBpcyBhIDMyLWJ5dGUga2V5IGZvciB0ZXN0aW4="
+API Key (optional): 32-byte base64-encoded string (chosen by game developers)
+Required only for server-side score submission via the Leaderboard API
+Can be generated automatically on the Developer portal via a button next to the input field for it
+Example: "dGhpcyBpcyBhIDMyLWJ5dGUga2V5IGZvciB0ZXN0aW4="
+Metric Type: Defines what the score represents in the UI
+Options: 'XP' | 'KDA' | 'POINTS' | 'MINUTES'
+Determines leaderboard labeling
+Incremental Scoring: Boolean indicating if scores accumulate over time
+true - For incremental games where scores continuously grow
+false - For games with distinct play sessions
+Score Sorting: How scores are ranked
+"ASC" - Lower scores are better (i.e. best time)
+"DESC" - Higher scores are better (i.e. points)
+Min Allowed Score: Minimum valid score value (float)
+Scores below this threshold are rejected
+Example: 0.0 for games where negative scores aren't possible
+Max Allowed Score: Maximum valid score value (float)
+Scores above this threshold are rejected
+Example: 999999.0 for reasonable score caps
+Cooldown interval: Minimum amount of seconds between submitting scores for a user (int)
+Scores submitted within threshold are rejected
+Only applies to client-side submissions via the SDK — not enforced for backend submissions via the Leaderboard API
+Example: 10 for reasonable score pacing
+Example:
+
+{
+    "encryptionKey": "dGhpcyBpcyBhIDMyLWJ5dGUga2V5IGZvciB0ZXN0aW4=",
+    "apiKey": "sGrZXWMMtYZBoGHjD+YKJLg/9tlAso7R5iT3A2MOA24=",
+    "scoreLabel": "POINTS",
+    "scoreSorting": "DESC",
+    "minValue": 0.0,
+    "maxValue": 500000.0,
+    "cooldownSeconds": 10,
+    "isIncremental": false,
+}
+Note: The Leaderboard Guide is configured separately from the JSON above.
+
+Made with Material for MkDocs
+
+Leaderboards SDK
+Score Reporting
+Start by encrypting the score. This is crucial to make it harder for hackers to tamper with your leaderboard.
+
+
+HTML5
+Unity
+Construct
+Cocos
+export async function encryptScore(score, encryptionKey) {
+    const iv = window.crypto.getRandomValues(new Uint8Array(12));
+    const algorithm = { name: 'AES-GCM', iv: iv };
+
+    const keyBytes = new Uint8Array(
+    atob(encryptionKey)
+    .split('')
+    .map((c) => c.charCodeAt(0)),
+    );
+
+    const cryptoKey = await window.crypto.subtle.importKey('raw', keyBytes, algorithm, false, ['encrypt']);
+
+    const dataBuffer = new TextEncoder().encode(score.toString());
+    const encryptedBuffer = await window.crypto.subtle.encrypt(algorithm, cryptoKey, dataBuffer);
+
+    const combined = new Uint8Array(iv.length + encryptedBuffer.byteLength);
+    combined.set(iv);
+    combined.set(new Uint8Array(encryptedBuffer), iv.length);
+
+    return btoa(String.fromCharCode(...combined));
+}
+
+Afterwards, submit the score. You need to pass both the encrypted and the plain score:
+
+
+HTML5
+Unity
+Construct
+Cocos
+const encryptionKey = 'your-32-byte-base64-key-here';
+
+// Encrypt the score
+const finalScore = 152.1;
+const encryptedScore = await encryptScore(finalScore, encryptionKey);
+
+// Submit the score
+CrazyGames.SDK.user.submitScore({
+    encryptedScore: encryptedScore,
+    score: finalScore,
+});
+
+Testing
+You can test your leaderboard integration in our preview tool on the Developer Portal.
+
+When your game submits a score, you'll see a submitScore message in the logs and in browser console.
+To avoid hacking, the server response is always successful and validation is applied in our back-end.
+Leaderboard QA Tool
+Leaderboards API
+Overview
+The Leaderboard API allows game developers to submit player scores directly from their backend servers to CrazyGames leaderboards. This is designed for games that need to validate scores server-side before submitting them.
+
+Key features:
+
+Authentication using API keys
+Batch score submissions (up to 100 scores per request)
+Higher rate limits compared to client-side submissions
+Partial success support (individual score failures don't block the entire batch)
+Detailed error responses with only failed scores returned, including the original score data
+Endpoint
+POST https://leaderboard.crazygames.com/leaderboard/scores
+Authentication
+Authentication is performed via an API key sent in the request header.
+
+Header
+Header	Required	Value
+X-API-Key	Yes	The game's API key
+Content-Type	Yes	application/json
+API Key Security
+
+The API key is unique to the game and can be found in the Developer Portal under the Leaderboard tab of your game (only visible for games with leaderboards enabled). Keep this key secret.
+
+Authentication Errors
+Status Code	Response	Description
+401 Unauthorized	{"error": "Unauthorized"}	Missing, invalid format, or unrecognized API key
+Rate Limiting
+The endpoint implements rate limiting to prevent abuse:
+
+Limit: 1000 requests per 60 seconds per API key
+Response: 429 Too Many Requests when limit is exceeded
+Request Format
+Body Structure
+The request body must be a JSON object containing a scores array. Maximum batch size is 100 scores per request.
+
+{
+  "scores": [
+    {
+      "userId": "string",
+      "score": number,
+      "timestamp": "ISO 8601 string (e.g., 2026-04-07T12:39:32.989Z)"
+    }
+  ]
+}
+Score Object Fields
+Field	Type	Required	Description
+userId	string	Yes	Unique identifier for the user (obtained by verifying and decoding the user token on your backend)
+score	number	Yes	The score value (must be a finite number)
+timestamp	string	Yes	ISO 8601 timestamp of when the score was achieved. Must include date, time, and timezone (e.g., 2026-04-07T12:39:32.989Z). Cannot be in the future.
+Response Format
+Response Status Codes
+Status	Condition
+200 OK	Scores were processed (check errors for individual failures)
+400 Bad Request	Request payload is invalid, or score format/timestamp validation failed
+{
+  "success": boolean,
+  "total": number,
+  "successCount": number,
+  "failureCount": number,
+  "errors": [
+    {
+      "score": object,
+      "type": "string"
+    }
+  ]
+}
+Response Fields
+Field	Type	Description
+success	boolean	true if all scores succeeded, false if any failures occurred
+total	number	Total number of scores processed
+successCount	number	Number of successfully submitted scores
+failureCount	number	Number of failed score submissions
+errors	array	Array containing only the failed scores with their error details
+Error Object
+Field	Type	Description
+score	object	The original score object that was submitted, exactly as received
+type	string	The error type (see Error Types below)
+Error Types
+Type	Description
+no-active-season	No active leaderboard season for this game
+user-not-found	User ID does not exist in the system
+privacy-disabled	User has disabled leaderboards in their privacy settings
+validation	Score validation failed (score out of range, invalid timestamp, or invalid format)
+internal-server-error	Database or unknown internal error occurred
+Error Responses
+Status Code	Response Body	Description
+400 Bad Request	{"error": "Request body must contain a scores array"}	Missing scores field
+400 Bad Request	{"error": "Scores must be an array"}	Scores field is not an array
+400 Bad Request	{"error": "Scores must be a non-empty array"}	Empty scores array
+400 Bad Request	{"error": "Batch size must not exceed 100 scores"}	Batch size exceeds maximum limit of 100
+400 Bad Request	Standard response with errors array	Some scores failed format/timestamp validation (entire batch rejected)
+401 Unauthorized	{"error": "Unauthorized"}	Missing or invalid API key
+429 Too Many Requests	{"error": "Too Many Requests"}	Rate limit exceeded. The Retry-After response header contains the number of seconds to wait before retrying
+500 Internal Server Error	{"error": "Internal Server Error"}	Unexpected server error
+Example Requests
+Batch Score Submission
+
+cURL
+JavaScript
+curl -X POST https://leaderboard.crazygames.com/leaderboard/scores \
+  -H "X-API-Key: api-key-here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "scores": [
+      {
+        "userId": "user123",
+        "score": 1500,
+        "timestamp": "2026-03-25T10:30:00.000Z"
+      },
+      {
+        "userId": "user456",
+        "score": 2000,
+        "timestamp": "2026-03-25T10:31:00.000Z"
+      },
+      {
+        "userId": "user789",
+        "score": 1750,
+        "timestamp": "2026-03-25T10:32:00.000Z"
+      }
+    ]
+  }'
+
+Success Response Example (200 OK)
+When all scores succeed:
+
+{
+  "success": true,
+  "total": 3,
+  "successCount": 3,
+  "failureCount": 0,
+  "errors": []
+}
+Partial Success Response Example (200 OK)
+When some scores fail to be processed (e.g. user-not-found) but others succeed:
+
+{
+  "success": false,
+  "total": 3,
+  "successCount": 2,
+  "failureCount": 1,
+  "errors": [
+    {
+      "score": {
+        "userId": "user456",
+        "score": 2000,
+        "timestamp": "2026-03-25T10:31:00.000Z"
+      },
+      "type": "user-not-found"
+    }
+  ]
+}
+Validation errors abort the entire batch
+
+If any score in the batch fails format or timestamp validation (invalid field types, missing fields, future timestamp), the entire batch is rejected, no scores are processed and successCount will be 0.
+
+In this case failureCount reflects the total number of scores submitted (the entire batch), while errors contains only the scores that failed validation (not the valid scores that were collaterally rejected). Fix the validation errors in errors, then re-submit the entire original batch.
+
+Non-validation errors (user-not-found, privacy-disabled, no-active-season) are per-score and allow partial success.
+
+All Failures Response Example (200 OK)
+When all scores fail due to per-score errors:
+
+{
+  "success": false,
+  "total": 3,
+  "successCount": 0,
+  "failureCount": 3,
+  "errors": [
+    {
+      "score": {
+        "userId": "user123",
+        "score": 1500,
+        "timestamp": "2026-03-25T10:30:00.000Z"
+      },
+      "type": "no-active-season"
+    },
+    {
+      "score": {
+        "userId": "user456",
+        "score": 2000,
+        "timestamp": "2026-03-25T10:31:00.000Z"
+      },
+      "type": "user-not-found"
+    },
+    {
+      "score": {
+        "userId": "user789",
+        "score": 1750,
+        "timestamp": "2026-03-25T10:32:00.000Z"
+      },
+      "type": "privacy-disabled"
+    }
+  ]
+}
+Best Practices
+1. Batch Multiple Scores
+For better performance, submit multiple scores in a single request when possible. Note that the maximum batch size is 100 scores per request.
+
+const scores = [
+  { userId: 'user123', score: 1500, timestamp: '2026-03-25T10:30:00.000Z' },
+  { userId: 'user456', score: 2000, timestamp: '2026-03-25T10:31:00.000Z' },
+  // ...
+];
+
+// If you have more than 100 scores, split them into chunks
+const BATCH_SIZE = 100;
+for (let i = 0; i < scores.length; i += BATCH_SIZE) {
+  const batch = scores.slice(i, i + BATCH_SIZE);
+  await submitScores({ scores: batch });
+}
+2. Handle Partial Failures
+Always check the errors array in the response:
+
+const response = await submitScores({ scores });
+
+if (!response.success || response.errors.length > 0) {
+  // some scores failed
+  response.errors.forEach(error => {
+    console.error(`Score submission failed:`, {
+      userId: error.score.userId,
+      score: error.score.score,
+      errorType: error.type
+    });
+  });
+}
+3. Respect Rate Limits
+Implement exponential backoff when receiving 429 responses:
+
+async function submitWithRetry(scores, maxRetries = 3) {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await submitScores({ scores });
+    } catch (error) {
+      if (error.response?.status === 429 && attempt < maxRetries - 1) {
+        const retryAfter = parseInt(error.response.headers['retry-after']) || 60;
+        await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+      } else {
+        throw error;
+      }
+    }
+  }
+}
+4. Validate Scores Before Submission
+Ensure scores meet the game's leaderboard configuration (min/max values) before submitting:
+
+function isValidScore(score, minScore, maxScore) {
+  return Number.isFinite(score) && score >= minScore && score <= maxScore;
+}
+
+const validScores = allScores.filter(s =>
+  isValidScore(s.score, 0, 999999)
+);
+5. Use Accurate Timestamps
+Always use the actual timestamp when the score was achieved and not when you're submitting it, as we use it to sort rankings:
+
+// when score is achieved
+const scoreData = {
+  userId: user.id,
+  score: finalScore,
+  timestamp: new Date().toISOString()
+};
+
+// later, when submitting (timestamp remains unchanged)
+await submitScores({ scores: [scoreData] });
+Complete Implementation Example
+Here's a complete implementation example with error handling and best practices:
+
+const axios = require('axios');
+
+class CrazyGamesScoreAPI {
+  constructor(apiKey, options = {}) {
+    this.apiKey = apiKey;
+    this.baseURL = options.baseURL || 'https://userportal.crazygames.com';
+    this.maxRetries = options.maxRetries || 3;
+    this.maxBatchSize = 100; // Maximum batch size enforced by the API
+  }
+
+  async submitScores(scores) {
+    try {
+      const response = await axios.post(
+        `${this.baseURL}/leaderboard/scores`,
+        { scores },
+        {
+          headers: {
+            'X-API-Key': this.apiKey,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      if (error.response) {
+        if (error.response.status === 400 && error.response.data?.errors) {
+          return error.response.data;
+        }
+        switch (error.response.status) {
+          case 401:
+            throw new Error('Invalid API key');
+          case 429: {
+            const retryAfter = parseInt(error.response.headers['retry-after']) || 60;
+            const rateLimitError = new Error('Rate limit exceeded');
+            rateLimitError.retryAfter = retryAfter;
+            throw rateLimitError;
+          }
+          case 400:
+            throw new Error(`Bad request: ${error.response.data.error}`);
+          default:
+            throw new Error(`API error: ${error.response.status}`);
+        }
+      }
+      throw error;
+    }
+  }
+
+  async submitScoresWithRetry(scores) {
+    for (let attempt = 0; attempt < this.maxRetries; attempt++) {
+      try {
+        return await this.submitScores(scores);
+      } catch (error) {
+        if (error.message === 'Rate limit exceeded' && attempt < this.maxRetries - 1) {
+          const delay = (error.retryAfter || 60) * 1000;
+          await new Promise(resolve => setTimeout(resolve, delay));
+        } else {
+          throw error;
+        }
+      }
+    }
+  }
+
+  async submitSingleScore(userId, score, timestamp = new Date().toISOString()) {
+    return this.submitScores([{
+      userId,
+      score,
+      timestamp
+    }]);
+  }
+
+  async submitLargeBatch(scores) {
+    const results = [];
+
+    // Split into chunks of maxBatchSize
+    for (let i = 0; i < scores.length; i += this.maxBatchSize) {
+      const batch = scores.slice(i, i + this.maxBatchSize);
+      const batchResult = await this.submitScoresWithRetry(batch);
+      results.push(batchResult);
+    }
+
+    // Combine results
+    return {
+      success: results.every(r => r.success),
+      total: results.reduce((sum, r) => sum + r.total, 0),
+      successCount: results.reduce((sum, r) => sum + r.successCount, 0),
+      failureCount: results.reduce((sum, r) => sum + r.failureCount, 0),
+      errors: results.flatMap(r => r.errors)
+    };
+  }
+
+  validateScore(score, minScore, maxScore) {
+    return Number.isFinite(score) && score >= minScore && score <= maxScore;
+  }
+}
+
+// usage
+const api = new CrazyGamesScoreAPI('api-key');
+
+// submit single score
+try {
+  const result = await api.submitSingleScore('user123', 1500);
+  console.log('Score submitted:', result);
+} catch (error) {
+  console.error('Failed to submit score:', error.message);
+}
+
+// submit batch with retry
+try {
+  const batchResult = await api.submitScoresWithRetry([
+    { userId: 'user1', score: 100, timestamp: new Date().toISOString() },
+    { userId: 'user2', score: 200, timestamp: new Date().toISOString() },
+    { userId: 'user3', score: 300, timestamp: new Date().toISOString() }
+  ]);
+
+  if (!batchResult.success) {
+    console.warn(`${batchResult.failureCount} scores failed`);
+    batchResult.errors.forEach(error => {
+      console.error(`Failed: ${error.score.userId} - ${error.type}`);
+    });
+  }
+} catch (error) {
+  console.error('Failed to submit batch:', error.message);
+}
+
+// submit large batch (automatically splits into chunks of 100)
+try {
+  const largeScoreArray = [
+    { userId: 'user1', score: 1500, timestamp: '2026-03-25T10:30:00.000Z' },
+    { userId: 'user2', score: 2000, timestamp: '2026-03-25T10:31:00.000Z' },
+    // ... 250 scores total
+  ];
+
+  const result = await api.submitLargeBatch(largeScoreArray);
+  console.log(`Submitted ${result.total} scores: ${result.successCount} succeeded, ${result.failureCount} failed`);
+} catch (error) {
+  console.error('Failed to submit large batch:', error.message);
+}
+Troubleshooting
+Getting 401 Unauthorized
+Possible causes:
+
+Missing X-API-Key header
+Invalid API key format
+API key not associated with any game
+Solution: Verify the API key is correct and properly set in the request header.
+
+Scores failing with validation errors
+Possible causes:
+
+Scores have invalid field types or values
+Missing required fields (userId, score, timestamp)
+Invalid timestamp format
+Solution: Check the errors array in the response to see exactly which scores failed and why. Each error object contains the original score data and the error type to help you identify and fix the issues.
+
+Scores failing with "user-not-found" error
+Possible cause: The userId provided does not exist in the CrazyGames system
+
+Solution: Ensure you're using the correct user ID obtained from the user token.
+
+Scores showing as failed with "validation" error
+Possible causes:
+
+Score values exceed the minimum or maximum values configured for the leaderboard
+Invalid timestamp format
+Solution: Check the leaderboard configuration in the developer portal and ensure scores fall within the allowed range. Verify that timestamps are valid.
+
+Getting 429 Too Many Requests
+Possible cause: Exceeding rate limit of 1000 requests per 60 seconds
+
+Solution: Implement batching to reduce request frequency and add retry logic with exponential backoff.
+
+Scores not appearing on leaderboard
+Possible causes:
+
+No active season configured for the game (no-active-season error)
+User ID does not exist (user-not-found error)
+User has disabled leaderboards in their settings (privacy-disabled error)
+Score failed validation (validation error)
+Internal server error occurred (internal-server-error)
+Solution: Check the response errors array for specific error details for each failed score submission.
+
+Getting 400 Bad Request - "Batch size must not exceed 100 scores"
+Possible cause: Attempting to submit more than 100 scores in a single request
+
+Solution: Split the scores into batches of 100 or fewer. Use the submitLargeBatch method from the implementation example above to automatically handle large batches by splitting them into chunks.
+
+Made with Material for MkDocs

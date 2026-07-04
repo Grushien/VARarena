@@ -1,0 +1,78 @@
+Video ads
+The ad module contains functionality for displaying video ads and for detecting adblockers.
+
+Requirements for Advertisements
+
+Please be sure to read our advertisement requirements, since your game will be rejected without any feedback if it doesn't follow them.
+
+Getting started
+After reading our SDK Introduction page for your engine, access the ad module like this:
+
+
+HTML5
+Unity
+GameMaker
+Construct
+Godot
+Cocos
+window.CrazyGames.SDK.ad;
+
+Video ads
+We support two different types of video ads: midgame and rewarded. Read more on our advertisement requirements.
+
+Midgame advertisements can happen when a user died, a level has been completed, etc.
+Rewarded advertisements can be requested by the user in exchange for a reward (An additional life, a retry when the user died, a bonus starting item, extra starting health, etc.).
+To request a video ad:
+
+
+HTML5
+Unity
+GameMaker
+Construct
+Godot
+Cocos
+const callbacks = {
+  adFinished: () => console.log("End midgame ad"),
+  adError: (error) => console.log("Error midgame ad", error),
+  adStarted: () => console.log("Start midgame ad"),
+};
+window.CrazyGames.SDK.ad.requestAd("midgame", callbacks);
+// or
+window.CrazyGames.SDK.ad.requestAd("rewarded", callbacks);
+Warning
+
+Make sure to mute the audio and pause the game when the ad starts (adStarted callback), and to unmute the audio and continue the game when the ad finishes/fails to load (adError and adFinished callbacks)
+
+
+Callbacks
+The adError callback is also triggered if the ad is not filled or if something else goes wrong. Your game should be able to handle this. CrazyGames provides fallback banners and house-ads to limit unfilled ads.
+
+The returned errorData object will look like this:
+
+{
+    "code": "unfilled",
+    "message": "No ad available"
+}
+Possible error codes:
+
+adsDisabledBasicLaunch - during Basic Launch ads are disabled
+unfilled - no ad available
+adblock - an adblocker prevents showing ads
+adCooldown - the ad was requested too soon, the usual midgame ad request interval is 3 minutes, taking rewarded and preroll ads into consideration.
+other
+Adblock detection
+Info
+
+We require games to function even when the user has an adblock. The detection is not foolproof, and it would be very frustrating for a user not running any adblock to get a non-functional game. You can block extra content, such as custom skins, or some levels, to motivate the user to turn off their adblock. Also, keep in mind that turning off the adblock usually requires a page refresh. Make sure that the progress is saved, or the user may just decide to stop playing your game.
+
+
+HTML5
+Unity
+GameMaker
+Construct
+Godot
+Cocos
+You can use the code below to detect if the user has an adblocker.
+
+const result = await window.CrazyGames.SDK.ad.hasAdblock();
+console.log("Adblock usage fetched", result);

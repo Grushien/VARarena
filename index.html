@@ -1,0 +1,2667 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VASVÁR ARÉNA — Bajnokok Kora</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Alegreya+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js" defer></script>
+<script src="js/battle3d.js?v=6" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
+<script src="js/online.js?v=1" defer></script>
+<style>
+  :root {
+    --bg: #0c0805;
+    --panel: #191008;
+    --panel2: #22170c;
+    --panel3: #2c1e10;
+    --border: #4a3823;
+    --neon: #f0a63c;
+    --neon-dim: rgba(240,166,60,.35);
+    --neon2: #d8442e;
+    --gold: #ffdf8a;
+    --green: #7dc95e;
+    --red: #e04a3a;
+    --purple: #a06bd6;
+    --text: #ead9c0;
+    --dim: #a58c68;
+    --f-head: 'Cinzel', serif;
+    --f-body: 'Alegreya Sans', 'Segoe UI', sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scrollbar-color: var(--border) var(--bg); }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--f-body);
+    font-size: 15px;
+    min-height: 100vh;
+    overflow-x: hidden;
+    background-image:
+      radial-gradient(ellipse at 50% -20%, rgba(240,166,60,.12), transparent 55%),
+      radial-gradient(ellipse at 8% 110%, rgba(216,68,46,.10), transparent 50%),
+      radial-gradient(ellipse at 92% 110%, rgba(160,107,214,.07), transparent 50%);
+  }
+  /* szálló parázs */
+  body::before {
+    content: ''; position: fixed; inset: 0 0 -10% 0; pointer-events: none; z-index: 1;
+    background:
+      radial-gradient(2px 2px at 18% 82%, rgba(255,170,70,.7) 50%, transparent 51%),
+      radial-gradient(1.6px 1.6px at 64% 64%, rgba(255,140,50,.6) 50%, transparent 51%),
+      radial-gradient(2.2px 2.2px at 42% 91%, rgba(255,190,90,.55) 50%, transparent 51%),
+      radial-gradient(1.4px 1.4px at 86% 74%, rgba(255,150,60,.5) 50%, transparent 51%);
+    background-size: 700px 900px, 520px 760px, 860px 1100px, 620px 820px;
+    animation: embers 16s linear infinite;
+  }
+  @keyframes embers {
+    to { background-position: 60px -900px, -40px -760px, 90px -1100px, -70px -820px; }
+  }
+  /* meleg vignetta */
+  body::after {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 2;
+    background: radial-gradient(ellipse at 50% 50%, transparent 62%, rgba(8,4,2,.55));
+  }
+  .page { max-width: 1880px; width: 100%; margin: 0 auto; padding: 12px 18px; position: relative; z-index: 3; }
+
+  h1,h2,h3,.f-head { font-family: var(--f-head); }
+
+  /* ================================================================
+     FELSŐ ERŐFORRÁS-SÁV
+  ================================================================ */
+  #topbar {
+    display: flex; flex-wrap: wrap; gap: 6px; align-items: stretch;
+    background:
+      linear-gradient(90deg, rgba(240,166,60,.07), transparent 30%, transparent 70%, rgba(216,68,46,.07)),
+      linear-gradient(180deg, #1a1a30, var(--panel));
+    border: 1px solid var(--border); border-bottom: 2px solid var(--neon);
+    padding: 9px 12px;
+    box-shadow: 0 4px 24px rgba(0,0,0,.6), 0 1px 0 rgba(240,166,60,.15) inset;
+    clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%, 0 14px);
+  }
+  .tb-chip {
+    background: linear-gradient(180deg, rgba(0,0,0,.55), rgba(0,0,0,.3));
+    border: 1px solid var(--border);
+    padding: 4px 14px 5px; font-size: 13px; white-space: nowrap;
+    display: flex; align-items: center; gap: 8px;
+    clip-path: polygon(7px 0, 100% 0, calc(100% - 7px) 100%, 0 100%);
+  }
+  .tb-chip .ico { font-size: 17px; filter: drop-shadow(0 0 4px var(--neon-dim)); }
+  .tb-chip .lab { font-family: var(--f-head); font-size: 8px; letter-spacing: 2px; color: var(--dim); display: block; }
+  .tb-chip b { font-size: 15px; letter-spacing: .5px; }
+  .tb-logo {
+    font-family: var(--f-head); font-weight: 900;
+    font-size: 17px; letter-spacing: 3px; color: var(--neon);
+    text-shadow: 0 0 14px rgba(240,166,60,.9), 0 0 40px rgba(240,166,60,.4);
+    display: flex; align-items: center; padding: 0 10px;
+    margin-right: auto;
+    animation: logoflick 7s infinite;
+  }
+  .tb-logo small { color: var(--neon2); font-size: 8px; letter-spacing: 4px; margin-left: 10px; text-shadow: 0 0 10px rgba(216,68,46,.8); }
+  @keyframes logoflick { 0%,86%,90%,100% { opacity:1 } 87%,89% { opacity:.4 } }
+
+  /* ================================================================
+     FŐ ELRENDEZÉS
+  ================================================================ */
+  .layout {
+    display: grid; grid-template-columns: 182px 1fr;
+    background: rgba(6,6,15,.72);
+    border: 1px solid var(--border); border-top: none;
+    min-height: calc(100vh - 132px);
+    backdrop-filter: blur(2px);
+    box-shadow: 0 20px 60px rgba(0,0,0,.6);
+  }
+
+  /* ---- bal menüoszlop ---- */
+  aside {
+    background: linear-gradient(180deg, var(--panel2), #0a0a16 60%);
+    border-right: 1px solid var(--border);
+    padding: 12px 9px; display: flex; flex-direction: column;
+  }
+  .menu-head {
+    font-family: var(--f-head); font-size: 8px; letter-spacing: 3px; color: var(--neon2);
+    margin: 12px 4px 6px; text-shadow: 0 0 8px rgba(216,68,46,.6);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .menu-head::after { content:''; flex:1; height:1px; background: linear-gradient(90deg, rgba(216,68,46,.5), transparent); }
+  .menu-btn {
+    display: flex; align-items: center; gap: 9px; width: 100%;
+    background: linear-gradient(90deg, rgba(240,166,60,.05), transparent 60%), linear-gradient(180deg, var(--panel3), var(--panel2));
+    border: 1px solid var(--border);
+    color: var(--text); text-align: left; padding: 8px 11px; margin-bottom: 5px;
+    font-family: var(--f-head); font-size: 10.5px; letter-spacing: 1.5px; cursor: pointer;
+    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+    transition: all .15s;
+    position: relative;
+  }
+  .menu-btn .mi { font-size: 15px; filter: grayscale(.3) drop-shadow(0 0 3px var(--neon-dim)); }
+  .menu-btn:hover { border-color: var(--neon); color: var(--neon); transform: translateX(2px); }
+  .menu-btn.active {
+    background: linear-gradient(90deg, rgba(240,166,60,.25), rgba(240,166,60,.05));
+    border-color: var(--neon); color: #fff;
+    box-shadow: 0 0 16px rgba(240,166,60,.3), inset 0 0 12px rgba(240,166,60,.12);
+    text-shadow: 0 0 8px rgba(240,166,60,.9);
+  }
+  .menu-btn.danger { color: var(--dim); font-size: 9px; }
+  .menu-btn.danger:hover { border-color: var(--neon2); color: var(--neon2); }
+
+  .side-bars { margin-top: auto; padding-top: 14px; }
+  .side-bars .blab { font-family: var(--f-head); font-size: 8px; letter-spacing: 2px; color: var(--dim); margin: 8px 2px 3px; }
+  .bar {
+    background: #04040a; border: 1px solid var(--border); height: 15px; overflow: hidden; position: relative;
+    clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
+  }
+  .bar > div { height: 100%; transition: width .35s; position: relative; }
+  .bar > div::after {
+    content:''; position:absolute; inset:0;
+    background: repeating-linear-gradient(90deg, transparent 0 7px, rgba(0,0,0,.35) 7px 9px);
+  }
+  .bar span {
+    position: absolute; inset: 0; text-align: center; font-size: 10px; line-height: 15px;
+    color: #fff; text-shadow: 0 1px 3px #000; letter-spacing: 1px; font-weight: 600; z-index: 2;
+  }
+  .hp-fill { background: linear-gradient(180deg, #6dffa8, #14a04f); box-shadow: 0 0 10px rgba(125,201,94,.5); }
+  .en-fill { background: linear-gradient(180deg, #6df6ff, #0284b8); box-shadow: 0 0 10px rgba(240,166,60,.5); }
+  .xp-fill { background: linear-gradient(180deg, #ffe28a, #b8860b); box-shadow: 0 0 10px rgba(255,210,77,.5); }
+  .side-char {
+    font-size: 12.5px; color: var(--dim); line-height: 1.65;
+    border-top: 1px solid var(--border); margin-top: 12px; padding-top: 9px;
+  }
+  .side-char b { color: var(--text); }
+  .side-char .fame { color: var(--purple); text-shadow: 0 0 6px rgba(160,107,214,.5); }
+
+  /* ---- középső tartalom ---- */
+  main { padding: 16px; min-width: 0; position: relative; perspective: 1500px; }
+
+  .frame {
+    position: relative;
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(240,166,60,.05), transparent 60%),
+      linear-gradient(180deg, #121222, #0a0a15);
+    border: 1px solid var(--border);
+    padding: 20px;
+    box-shadow: 0 0 0 4px #07070f, 0 0 0 5px var(--border), 0 12px 44px rgba(0,0,0,.65);
+    margin: 6px;
+  }
+  .frame::before, .frame::after,
+  .frame > .corner-b::before, .frame > .corner-b::after {
+    content: ''; position: absolute; width: 22px; height: 22px;
+    border: 2px solid var(--neon); pointer-events: none;
+    filter: drop-shadow(0 0 6px rgba(240,166,60,.9));
+  }
+  .frame::before { top: -6px; left: -6px; border-right: none; border-bottom: none; }
+  .frame::after  { top: -6px; right: -6px; border-left: none; border-bottom: none; }
+  .frame > .corner-b::before { bottom: -6px; left: -6px; border-right: none; border-top: none; }
+  .frame > .corner-b::after  { bottom: -6px; right: -6px; border-left: none; border-top: none; }
+  .frame h2 {
+    font-size: 16px; font-weight: 700; letter-spacing: 4px; color: var(--gold);
+    text-align: center; margin-bottom: 5px;
+    text-shadow: 0 0 12px rgba(255,210,77,.55), 0 0 34px rgba(255,210,77,.2);
+  }
+  .frame .sub { text-align: center; font-size: 13px; color: var(--dim); margin-bottom: 15px; letter-spacing: .4px; }
+  .divider {
+    height: 1px; margin: 15px 0; position: relative;
+    background: linear-gradient(90deg, transparent, var(--border) 15%, var(--neon) 50%, var(--border) 85%, transparent);
+  }
+  .divider::after {
+    content:'◆'; position:absolute; left:50%; top:-7px; transform:translateX(-50%);
+    color: var(--neon); font-size: 9px; text-shadow: 0 0 8px var(--neon);
+  }
+
+  .screen { display: none; }
+  .screen.active { display: block; animation: scrIn .5s cubic-bezier(.2,.7,.3,1); transform-origin: 50% 12%; }
+  @keyframes scrIn { from { opacity: 0; transform: rotateX(11deg) translateY(28px) scale(.98); } }
+
+  /* ================================================================
+     3D VÁROS (CSS 3D izometrikus)
+  ================================================================ */
+  .city3d {
+    position: relative; height: min(62vh, 660px); overflow: hidden;
+    background:
+      radial-gradient(ellipse at 50% -10%, rgba(120,60,220,.25), transparent 55%),
+      radial-gradient(ellipse at 50% 115%, rgba(240,166,60,.12), transparent 60%),
+      linear-gradient(180deg, #0c0822 0%, #070514 60%, #05050d 100%);
+    border: 1px solid var(--border);
+    perspective: 1250px;
+  }
+  .c3-world {
+    --rx: 58deg; --rz: 45deg;
+    position: absolute; left: 50%; top: 50%;
+    width: 720px; height: 720px; margin: -320px 0 0 -360px;
+    transform-style: preserve-3d;
+    transform: rotateX(var(--rx)) rotateZ(var(--rz));
+    transition: transform .35s ease-out;
+  }
+  .c3-ground {
+    position: absolute; inset: 0;
+    background:
+      linear-gradient(90deg, transparent 0 356px, rgba(255,210,77,.35) 356px 358px, transparent 358px),
+      linear-gradient(0deg, transparent 0 356px, rgba(255,210,77,.35) 356px 358px, transparent 358px),
+      linear-gradient(90deg, transparent 0 326px, #04040c 326px 394px, transparent 394px),
+      linear-gradient(0deg, transparent 0 326px, #04040c 326px 394px, transparent 394px),
+      repeating-linear-gradient(0deg, rgba(240,166,60,.09) 0 1px, transparent 1px 48px),
+      repeating-linear-gradient(90deg, rgba(240,166,60,.09) 0 1px, transparent 1px 48px),
+      linear-gradient(180deg, #0d0d1e, #090914);
+    border: 1px solid rgba(240,166,60,.25);
+    box-shadow: 0 0 60px rgba(240,166,60,.12);
+  }
+  .b3 { position: absolute; transform-style: preserve-3d; transition: transform .2s; }
+  .b3.main { cursor: pointer; }
+  .b3.main:hover { transform: translateZ(16px); }
+  .b3.main:hover .f { box-shadow: inset 0 0 30px -4px var(--c); border-color: #fff; }
+  .b3 .f {
+    position: absolute; transform-origin: 0 0;
+    background: linear-gradient(180deg, rgba(26,26,50,.97), rgba(9,9,20,.99));
+    border: 1px solid var(--c);
+    box-shadow: inset 0 0 22px -6px var(--c);
+    transition: box-shadow .2s, border-color .2s;
+  }
+  .b3 .p { position: absolute; transform-style: preserve-3d; }
+  .b3 .f.win {
+    background-image:
+      repeating-linear-gradient(90deg, transparent 0 11px, rgba(6,6,14,.92) 11px 16px),
+      repeating-linear-gradient(0deg, transparent 0 12px, var(--wc) 12px 17px, transparent 17px 25px),
+      linear-gradient(180deg, rgba(26,26,50,.97), rgba(9,9,20,.99));
+  }
+  .b3 .p.glow .f { background: var(--c); box-shadow: 0 0 20px var(--c), inset 0 0 8px rgba(255,255,255,.5); border-color: #fff; }
+  .b3 .p.awn .f { background: linear-gradient(180deg, rgba(255,210,77,.55), rgba(255,210,77,.25)); box-shadow: 0 0 14px -2px var(--c); }
+  .b3 .p.dark .f { background: linear-gradient(180deg, #1c1c30, #101020); border-color: #3a3a5e; box-shadow: none; }
+  .b3 .dr {
+    position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    width: 30px; height: 36px;
+    background: linear-gradient(0deg, #04040a, #0a0a18);
+    border: 1.5px solid var(--c);
+    box-shadow: 0 0 16px -2px var(--c), inset 0 0 10px rgba(255,255,255,.08);
+  }
+  .b3 .beacon {
+    position: absolute; width: 9px; height: 9px; border-radius: 50%;
+    background: #ff4d4d; box-shadow: 0 0 14px #ff4d4d, 0 0 30px rgba(255,77,77,.6);
+    left: 50%; top: 50%;
+    transform: translateZ(var(--bz, 240px)) rotateZ(calc(-1 * var(--rz, 45deg))) rotateX(calc(-1 * var(--rx, 58deg))) translate(-50%, -50%);
+    animation: blink 2.1s infinite;
+  }
+  @keyframes blink { 0%,45%,100% { opacity: 1; } 50%,95% { opacity: .12; } }
+  .b3 .top {
+    width: var(--w); height: var(--d); transform: translateZ(var(--h));
+    background: linear-gradient(135deg, #1a1a34, #0d0d1e);
+    border: 1.5px solid var(--c);
+    box-shadow: inset 0 0 28px -8px var(--c), 0 0 16px -6px var(--c);
+  }
+  .b3 .n, .b3 .s { width: var(--w); height: var(--h); left: 0; }
+  .b3 .n { top: 0; transform: rotateX(90deg); }
+  .b3 .s { top: var(--d); transform: rotateX(90deg); }
+  .b3 .w3, .b3 .e3 { width: var(--d); height: var(--h); top: 0; }
+  .b3 .w3 { left: 0; transform: rotateZ(90deg) rotateX(90deg); }
+  .b3 .e3 { left: var(--w); transform: rotateZ(90deg) rotateX(90deg); }
+  .b3.deco { opacity: .8; }
+  .b3.deco .f { box-shadow: inset 0 0 14px -6px var(--c); }
+  .b3-label {
+    position: absolute; left: 50%; top: 50%;
+    transform: translateZ(calc(var(--h) + 54px)) rotateZ(calc(-1 * var(--rz, 45deg))) rotateX(calc(-1 * var(--rx, 58deg))) translate(-50%, -50%);
+    font-family: var(--f-head); font-weight: 900; letter-spacing: 2px; font-size: 15px;
+    color: var(--c); text-shadow: 0 0 12px var(--c);
+    background: rgba(5,5,15,.78); border: 1px solid var(--c); padding: 5px 14px;
+    pointer-events: none; white-space: nowrap; text-align: center;
+    box-shadow: 0 0 18px -4px var(--c);
+    clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 50%, calc(100% - 8px) 100%, 8px 100%, 0 50%);
+  }
+  .b3-label small { display: block; font-family: var(--f-body); font-weight: 600; font-size: 10px; color: var(--dim); letter-spacing: 1px; }
+  .c3-fog { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, transparent 60%, rgba(5,5,13,.7)); }
+  .c3-hint { position: absolute; right: 12px; bottom: 8px; font-size: 11px; color: var(--dim); letter-spacing: 1px; pointer-events: none; }
+
+  /* ---- 3D dobogó (ranglista top 3) ---- */
+  .podium { position: relative; height: 265px; margin: 2px 0 12px; perspective: 1100px; overflow: hidden; }
+  .pod-world {
+    position: absolute; left: 50%; top: 50%;
+    width: 320px; height: 320px; margin: -125px 0 0 -160px;
+    transform-style: preserve-3d;
+    transform: rotateX(58deg) rotateZ(45deg);
+  }
+  .pod-ground {
+    position: absolute; inset: 0;
+    background:
+      repeating-linear-gradient(0deg, rgba(240,166,60,.10) 0 1px, transparent 1px 32px),
+      repeating-linear-gradient(90deg, rgba(240,166,60,.10) 0 1px, transparent 1px 32px),
+      linear-gradient(180deg, #0d0d1e, #090914);
+    border: 1px solid rgba(240,166,60,.25);
+    box-shadow: 0 0 40px rgba(240,166,60,.10);
+  }
+
+  /* ---- mini holo-korong (ellenfél-kártyák) ---- */
+  .mini-disc {
+    width: 92px; height: 30px; margin: -20px auto 2px; pointer-events: none;
+    background:
+      radial-gradient(ellipse 50% 40% at 50% 50%, transparent 48%, rgba(216,68,46,.5) 50%, transparent 56%),
+      radial-gradient(ellipse 50% 40% at 50% 50%, rgba(216,68,46,.14), transparent 62%);
+    animation: discPulse 3.2s ease-in-out infinite;
+  }
+
+  /* ================================================================
+     KARAKTER — paperdoll + táska
+  ================================================================ */
+  .char-layout { display: grid; grid-template-columns: 1.15fr 1fr; gap: 16px; perspective: 1600px; }
+  .char-layout .doll-board { transform: rotateY(5deg); }
+  .char-layout .bag-board { transform: rotateY(-5deg); }
+  @media (max-width: 820px) { .char-layout { grid-template-columns: 1fr; } .char-layout .doll-board, .char-layout .bag-board { transform: none; } }
+
+  .doll-board {
+    background:
+      radial-gradient(circle at 50% 34%, rgba(240,166,60,.13), transparent 55%),
+      repeating-linear-gradient(60deg, transparent 0 26px, rgba(240,166,60,.03) 26px 27px),
+      repeating-linear-gradient(-60deg, transparent 0 26px, rgba(216,68,46,.02) 26px 27px),
+      var(--panel2);
+    border: 1px solid var(--border); padding: 16px;
+  }
+  .doll-grid {
+    display: grid;
+    grid-template-columns: 76px 1fr 76px;
+    grid-template-rows: 76px auto 76px;
+    gap: 9px; align-items: center; justify-items: center;
+    perspective: 900px;
+  }
+  #charPreview3d { width: 170px; height: 170px; margin: 0 auto; }
+  #charPreview3d canvas { display: block; }
+  .skin-row { display: flex; gap: 5px; justify-content: center; margin-top: 10px; flex-wrap: wrap; }
+  .skin-chip {
+    background: linear-gradient(180deg, var(--panel3), var(--panel2));
+    border: 1px solid var(--border); color: var(--dim);
+    font-family: var(--f-head); font-size: 8.5px; letter-spacing: 1px;
+    padding: 5px 9px; cursor: pointer; transition: all .15s;
+    clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+  }
+  .skin-chip:hover { border-color: var(--c); color: var(--c); }
+  .skin-chip.sel {
+    border-color: var(--c); color: var(--c);
+    box-shadow: 0 0 12px -3px var(--c), inset 0 0 10px -6px var(--c);
+    text-shadow: 0 0 6px var(--c);
+  }
+  .holo-disc {
+    width: 180px; height: 64px; margin: -38px auto 0; position: relative; pointer-events: none;
+    background:
+      radial-gradient(ellipse 50% 42% at 50% 50%, transparent 48%, rgba(240,166,60,.5) 50%, transparent 55%),
+      radial-gradient(ellipse 50% 42% at 50% 50%, transparent 66%, rgba(240,166,60,.35) 69%, transparent 76%),
+      radial-gradient(ellipse 50% 42% at 50% 50%, rgba(240,166,60,.14), transparent 60%);
+    animation: discPulse 3.2s ease-in-out infinite;
+  }
+  @keyframes discPulse { 50% { opacity: .55; transform: scaleX(.96); } }
+  .avatar-ring {
+    width: 150px; height: 150px; margin: 0 auto; position: relative;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .avatar-ring::before {
+    content:''; position:absolute; inset:0; border-radius:50%;
+    border: 2px solid var(--neon);
+    border-top-color: transparent; border-bottom-color: transparent;
+    animation: spin 9s linear infinite;
+    filter: drop-shadow(0 0 6px var(--neon-dim));
+  }
+  .avatar-ring::after {
+    content:''; position:absolute; inset:8px; border-radius:50%;
+    border: 1px dashed rgba(240,166,60,.4);
+    animation: spin 16s linear infinite reverse;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .avatar-ring svg { width: 116px; height: 116px; filter: drop-shadow(0 0 14px rgba(240,166,60,.45)); animation: avSway 7s ease-in-out infinite; }
+  @keyframes avSway {
+    0%, 100% { transform: perspective(600px) rotateY(-13deg); }
+    50% { transform: perspective(600px) rotateY(13deg); }
+  }
+  .doll-name { margin-top: 8px; font-family: var(--f-head); font-size: 15px; color: var(--neon); letter-spacing: 2px; text-shadow: 0 0 10px rgba(240,166,60,.7); }
+  .doll-title { font-size: 12px; color: var(--purple); letter-spacing: .5px; }
+  .lvl-badge {
+    display: inline-block; margin-top: 5px;
+    background: linear-gradient(180deg, #2a2410, #1a1608);
+    border: 1px solid var(--gold); color: var(--gold);
+    padding: 2px 12px; font-family: var(--f-head); font-size: 10px; font-weight: 700; letter-spacing: 1px;
+    clip-path: polygon(6px 0, calc(100% - 6px) 0, 100% 50%, calc(100% - 6px) 100%, 6px 100%, 0 50%);
+    text-shadow: 0 0 8px rgba(255,210,77,.7);
+  }
+  .eq-slot {
+    width: 76px; height: 76px;
+    background: linear-gradient(135deg, rgba(240,166,60,.06), rgba(0,0,0,.55) 40%);
+    border: 1px solid var(--border);
+    cursor: pointer; transition: all .15s; text-align: center;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+  }
+  .eq-slot:hover { border-color: var(--neon); box-shadow: 0 0 14px rgba(240,166,60,.35); transform: translateZ(20px) rotateX(5deg); }
+  .eq-slot .sl-icon { font-size: 25px; line-height: 1.1; filter: drop-shadow(0 0 5px rgba(240,166,60,.5)); }
+  .eq-slot .sl-label { font-family: var(--f-head); font-size: 7px; letter-spacing: 1px; color: var(--dim); }
+  .eq-slot .sl-item { font-size: 10px; color: var(--gold); padding: 0 3px; line-height: 1.1; font-weight: 600; }
+  .eq-slot.empty-slot .sl-item { color: #566; font-style: italic; }
+  .eq-slot.empty-slot .sl-icon { opacity: .3; filter: none; }
+  .eq-slot.locked { opacity: .32; cursor: default; }
+  .eq-slot.locked:hover { border-color: var(--border); box-shadow: none; transform: none; }
+
+  .bag-board { background: var(--panel2); border: 1px solid var(--border); padding: 16px; }
+  .bag-board h3, .doll-board h3 {
+    font-size: 10px; letter-spacing: 3px; color: var(--neon2); margin-bottom: 12px; text-align: center;
+    text-shadow: 0 0 8px rgba(216,68,46,.5);
+  }
+  .bag-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 7px; }
+  .bag-cell {
+    aspect-ratio: 1; background: linear-gradient(135deg, rgba(255,255,255,.03), rgba(0,0,0,.5));
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center; font-size: 27px;
+    cursor: pointer; transition: all .12s; position: relative;
+    clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+  }
+  .bag-cell.br0 { border-color: #4a4438; }
+  .bag-cell.br1 { border-color: #3f6b32; box-shadow: 0 0 8px -3px #7dc95e; }
+  .bag-cell.br2 { border-color: #2f5a8a; box-shadow: 0 0 8px -3px #5aa0e8; }
+  .bag-cell.br3 { border-color: #6a4a94; box-shadow: 0 0 10px -3px #a06bd6; }
+  .bag-cell.br4 { border-color: #9a6b1e; box-shadow: 0 0 12px -3px #f0a63c; }
+  .bag-cell:not(.empty):hover { border-color: var(--neon); transform: scale(1.07); box-shadow: 0 0 12px rgba(240,166,60,.3); }
+  .bag-cell.sel { border-color: var(--gold); box-shadow: 0 0 14px rgba(255,210,77,.5); transform: scale(1.07); }
+  .bag-cell.empty { cursor: default; opacity: .35; }
+  .bag-cell:not(.empty) { filter: drop-shadow(0 0 4px rgba(240,166,60,.25)); }
+  .item-detail {
+    margin-top: 12px; background: linear-gradient(180deg, rgba(240,166,60,.04), rgba(0,0,0,.4));
+    border: 1px solid var(--border);
+    padding: 12px; font-size: 13px; min-height: 92px;
+    clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px), 0 10px);
+  }
+  .item-detail .id-name { color: var(--gold); font-family: var(--f-head); font-size: 12px; letter-spacing: 1px; text-shadow: 0 0 8px rgba(255,210,77,.4); }
+  .item-detail .id-desc { color: var(--dim); margin: 5px 0 9px; }
+
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 14px; }
+  .stat-box {
+    background: linear-gradient(90deg, rgba(240,166,60,.07), rgba(0,0,0,.4) 40%);
+    border: 1px solid var(--border); border-left: 3px solid var(--neon);
+    padding: 6px 10px; font-size: 13.5px; display: flex; justify-content: space-between; align-items: center;
+    font-weight: 600; letter-spacing: .3px;
+  }
+  .stat-box .val { color: var(--neon); font-family: var(--f-head); font-weight: 700; font-size: 14px; text-shadow: 0 0 8px rgba(240,166,60,.6); }
+  .stat-box .bonus { color: var(--green); font-size: 11px; }
+  .stat-box button {
+    background: rgba(125,201,94,.1); border: 1px solid var(--green); color: var(--green);
+    width: 23px; height: 21px; cursor: pointer; font-weight: bold; margin-left: 6px;
+  }
+  .stat-box button:hover { background: var(--green); color: #000; }
+  .derived { font-size: 12.5px; color: var(--dim); margin-top: 12px; line-height: 2; text-align: center; letter-spacing: .3px; }
+  .derived b { color: var(--text); font-family: var(--f-head); font-size: 11px; }
+
+  /* ================================================================
+     GOMBOK
+  ================================================================ */
+  button.act {
+    background: linear-gradient(180deg, rgba(240,166,60,.14), rgba(240,166,60,.03));
+    border: 1px solid var(--neon); color: var(--neon);
+    padding: 7px 16px; cursor: pointer; font-family: var(--f-head); font-size: 10.5px; letter-spacing: 1.5px;
+    transition: all .15s;
+    clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+    text-shadow: 0 0 6px rgba(240,166,60,.5);
+  }
+  button.act:hover { background: var(--neon); color: #000; box-shadow: 0 0 18px rgba(240,166,60,.6); text-shadow: none; }
+  button.act.pink { border-color: var(--neon2); color: var(--neon2); background: linear-gradient(180deg, rgba(216,68,46,.14), rgba(216,68,46,.03)); text-shadow: 0 0 6px rgba(216,68,46,.5); }
+  button.act.pink:hover { background: var(--neon2); color: #000; box-shadow: 0 0 18px rgba(216,68,46,.6); text-shadow: none; }
+  button.act.gold { border-color: var(--gold); color: var(--gold); background: linear-gradient(180deg, rgba(255,210,77,.14), rgba(255,210,77,.03)); text-shadow: 0 0 6px rgba(255,210,77,.5); }
+  button.act.gold:hover { background: var(--gold); color: #000; box-shadow: 0 0 18px rgba(255,210,77,.6); text-shadow: none; }
+  button.act:disabled { opacity: .3; cursor: not-allowed; box-shadow: none; }
+  button.act:disabled:hover { background: linear-gradient(180deg, rgba(240,166,60,.14), rgba(240,166,60,.03)); color: var(--neon); }
+
+  /* ================================================================
+     HARC
+  ================================================================ */
+  .combat-arena { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: stretch; perspective: 1000px; }
+  @media (max-width: 700px) { .combat-arena { grid-template-columns: 1fr 1fr; } .vs-badge { display: none; } }
+  .fighter {
+    background:
+      radial-gradient(ellipse at 50% 20%, rgba(240,166,60,.07), transparent 60%),
+      linear-gradient(180deg, var(--panel3), var(--panel2));
+    border: 1px solid var(--border); padding: 13px; position: relative; overflow: hidden;
+    clip-path: polygon(12px 0, calc(100% - 12px) 0, 100% 12px, 100% calc(100% - 12px), calc(100% - 12px) 100%, 12px 100%, 0 calc(100% - 12px), 0 12px);
+  }
+  .fighter.player-side { border-color: rgba(240,166,60,.5); box-shadow: inset 0 0 30px rgba(240,166,60,.06); transform: rotateY(6deg); }
+  .fighter.enemy-side  { border-color: rgba(216,68,46,.5); box-shadow: inset 0 0 30px rgba(216,68,46,.06); transform: rotateY(-6deg); }
+  .fighter h3 { font-size: 12px; letter-spacing: 1.5px; margin-bottom: 9px; }
+  .fighter.player-side h3 { color: var(--neon); text-shadow: 0 0 8px rgba(240,166,60,.6); }
+  .fighter.enemy-side h3 { color: var(--neon2); text-shadow: 0 0 8px rgba(216,68,46,.6); }
+  .combat-portrait {
+    width: 92px; height: 92px; margin: 4px auto 10px; position: relative;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, rgba(255,255,255,.05), rgba(0,0,0,.5));
+    clip-path: polygon(25% 3%, 75% 3%, 98% 50%, 75% 97%, 25% 97%, 2% 50%);
+  }
+  .player-side .combat-portrait { box-shadow: inset 0 0 20px rgba(240,166,60,.2); }
+  .enemy-side  .combat-portrait { box-shadow: inset 0 0 20px rgba(216,68,46,.2); }
+  .combat-portrait svg { width: 74px; height: 74px; }
+  .combat-portrait .em { font-size: 46px; filter: drop-shadow(0 0 10px rgba(216,68,46,.6)); }
+  .fighter .mini { font-size: 12px; color: var(--dim); margin-top: 8px; letter-spacing: .5px; }
+  .vs-badge {
+    align-self: center; font-family: var(--f-head); font-size: 24px; font-weight: 900;
+    color: var(--gold); text-shadow: 0 0 14px rgba(255,210,77,.8), 0 0 40px rgba(255,210,77,.3);
+    padding: 0 8px; animation: vspulse 2s ease-in-out infinite;
+  }
+  @keyframes vspulse { 50% { transform: scale(1.12); } }
+
+  .fighter.shake { animation: shake .32s; }
+  @keyframes shake {
+    0%,100% { transform: none; }
+    20% { transform: translateX(-6px) rotate(-.6deg); }
+    45% { transform: translateX(5px) rotate(.5deg); }
+    70% { transform: translateX(-3px); }
+  }
+  .fighter.hitflash::after {
+    content:''; position:absolute; inset:0; background: rgba(255,60,60,.22); animation: hf .3s forwards; pointer-events:none;
+  }
+  @keyframes hf { to { opacity: 0; } }
+
+  /* 3D harctér (Three.js színpad) */
+  #battleStage {
+    height: 280px; margin: 2px 0 12px; position: relative; overflow: hidden;
+    border: 1px solid var(--border);
+    clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 14px, 100% calc(100% - 14px), calc(100% - 14px) 100%, 14px 100%, 0 calc(100% - 14px), 0 14px);
+  }
+  #battleStage canvas { display: block; }
+  @media (max-width: 760px) { #battleStage { height: 200px; } }
+
+  /* kitámadás (3D lendülés az ellenfél felé) */
+  .fighter.lungeR { animation: lungeR .48s ease-out; }
+  @keyframes lungeR {
+    30% { transform: rotateY(10deg) translateX(44px) translateZ(30px); }
+    100% { transform: rotateY(6deg); }
+  }
+  .fighter.lungeL { animation: lungeL .48s ease-out; }
+  @keyframes lungeL {
+    30% { transform: rotateY(-10deg) translateX(-44px) translateZ(30px); }
+    100% { transform: rotateY(-6deg); }
+  }
+
+  /* 3D portrék: lebegés + lassú forgás */
+  .combat-portrait { animation: bob 4.5s ease-in-out infinite; }
+  @keyframes bob { 50% { transform: translateY(-5px); } }
+  .combat-portrait svg, .combat-portrait .em { animation: avSway 6s ease-in-out infinite; display: inline-block; }
+  .disc-cyan {
+    background:
+      radial-gradient(ellipse 50% 40% at 50% 50%, transparent 48%, rgba(240,166,60,.5) 50%, transparent 56%),
+      radial-gradient(ellipse 50% 40% at 50% 50%, rgba(240,166,60,.14), transparent 62%) !important;
+  }
+  .fighter .mini-disc { margin: -16px auto 6px; }
+
+  /* helyszínenkénti harctér-hátterek */
+  #combatView[data-loc="rust"] .frame   { background: radial-gradient(ellipse at 50% 0%, rgba(125,201,94,.13), transparent 60%), linear-gradient(180deg, #0d1410, #0a0a15); }
+  #combatView[data-loc="market"] .frame { background: radial-gradient(ellipse at 50% 0%, rgba(255,210,77,.13), transparent 60%), linear-gradient(180deg, #14120b, #0a0a15); }
+  #combatView[data-loc="chrome"] .frame { background: radial-gradient(ellipse at 50% 0%, rgba(240,166,60,.13), transparent 60%), linear-gradient(180deg, #0b1214, #0a0a15); }
+  #combatView[data-loc="orbit"] .frame  {
+    background:
+      radial-gradient(1.5px 1.5px at 12% 18%, #fff 50%, transparent 51%),
+      radial-gradient(1.5px 1.5px at 78% 9%, #fff 50%, transparent 51%),
+      radial-gradient(1.5px 1.5px at 42% 28%, rgba(255,255,255,.7) 50%, transparent 51%),
+      radial-gradient(1.5px 1.5px at 91% 33%, rgba(255,255,255,.6) 50%, transparent 51%),
+      radial-gradient(ellipse at 50% 0%, rgba(160,107,214,.18), transparent 60%),
+      linear-gradient(180deg, #120b1c, #0a0a15);
+  }
+  #combatView[data-loc="pvp"] .frame    { background: radial-gradient(ellipse at 50% 0%, rgba(216,68,46,.14), transparent 60%), linear-gradient(180deg, #140b10, #0a0a15); }
+
+  /* helyszínválasztó csempék */
+  .loc-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; perspective: 900px; }
+  .loc-tile {
+    background: linear-gradient(180deg, var(--panel3), var(--panel2));
+    border: 1px solid var(--border); padding: 10px 8px; text-align: center; cursor: pointer;
+    transition: all .15s;
+    clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px), 0 10px);
+  }
+  .loc-tile:hover:not(.locked) { border-color: var(--c); transform: translateZ(18px) rotateX(4deg); box-shadow: 0 0 16px -4px var(--c); }
+  .loc-tile.sel { border-color: var(--c); box-shadow: 0 0 18px -4px var(--c), inset 0 0 16px -8px var(--c); }
+  .loc-tile .loc-ico { font-size: 27px; filter: drop-shadow(0 0 7px var(--c)); }
+  .loc-tile .loc-name { font-family: var(--f-head); font-size: 10px; letter-spacing: 1px; color: var(--c); margin: 5px 0 2px; text-shadow: 0 0 8px var(--c); }
+  .loc-tile .loc-req { font-size: 11.5px; color: var(--dim); }
+  .loc-tile.locked { opacity: .38; cursor: not-allowed; }
+
+  .dmg-pop {
+    position: absolute; z-index: 10; pointer-events: none;
+    font-family: var(--f-head); font-weight: 900; font-size: 22px; color: var(--red);
+    text-shadow: 0 0 10px rgba(255,77,77,.8), 0 2px 4px #000;
+    animation: dmgfloat 1s ease-out forwards;
+  }
+  .dmg-pop.crit { font-size: 30px; color: var(--gold); text-shadow: 0 0 14px rgba(255,210,77,.9), 0 2px 4px #000; }
+  .dmg-pop.heal { color: var(--green); text-shadow: 0 0 10px rgba(125,201,94,.8), 0 2px 4px #000; }
+  .dmg-pop.miss { font-size: 15px; color: var(--dim); }
+  @keyframes dmgfloat {
+    0% { opacity: 0; transform: translateY(6px) scale(.6); }
+    15% { opacity: 1; transform: translateY(0) scale(1.15); }
+    100% { opacity: 0; transform: translateY(-52px) scale(1); }
+  }
+
+  .intent {
+    margin-top: 9px; padding: 9px; font-size: 13px; font-weight: 600; letter-spacing: .3px;
+    background: linear-gradient(90deg, rgba(216,68,46,.16), rgba(216,68,46,.04));
+    border: 1px dashed var(--neon2);
+    animation: pulse 1.6s infinite;
+    clip-path: polygon(6px 0, calc(100% - 6px) 0, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0 calc(100% - 6px), 0 6px);
+  }
+  @keyframes pulse { 50% { opacity: .6; } }
+
+  .actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(152px, 1fr)); gap: 9px; margin-top: 12px; perspective: 900px; }
+  .action-btn:nth-child(1) { transform: rotateY(11deg) translateZ(4px); }
+  .action-btn:nth-child(2) { transform: rotateY(5deg) translateZ(12px); }
+  .action-btn:nth-child(3) { transform: translateZ(18px); }
+  .action-btn:nth-child(4) { transform: rotateY(-5deg) translateZ(12px); }
+  .action-btn:nth-child(5) { transform: rotateY(-11deg) translateZ(4px); }
+  .action-btn {
+    background: linear-gradient(180deg, var(--panel3), var(--panel2));
+    border: 1px solid var(--border);
+    padding: 10px 11px; cursor: pointer; text-align: left; color: var(--text); transition: all .15s;
+    clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px), 0 10px);
+    font-family: var(--f-body);
+  }
+  .action-btn:hover:not(:disabled) { border-color: var(--neon); box-shadow: 0 0 18px rgba(240,166,60,.35); transform: translateZ(34px) rotateY(0deg) !important; }
+  .action-btn:disabled { opacity: .35; cursor: not-allowed; }
+  .action-btn .a-name { font-family: var(--f-head); font-weight: 700; font-size: 11px; letter-spacing: 1px; }
+  .action-btn .a-cost { font-size: 12px; color: var(--neon); font-weight: 600; }
+  .action-btn .a-desc { font-size: 12px; color: var(--dim); margin-top: 3px; line-height: 1.35; }
+  .action-btn.counter-hint { border-color: var(--gold); box-shadow: 0 0 16px rgba(255,210,77,.35); background: linear-gradient(180deg, rgba(255,210,77,.1), var(--panel2)); }
+  .action-btn.counter-hint .a-name::after { content: " ★ ELLENSZER"; color: var(--gold); font-size: 8px; text-shadow: 0 0 6px rgba(255,210,77,.7); }
+
+  #combatLog {
+    background: rgba(0,0,0,.75); border: 1px solid var(--border);
+    padding: 11px; height: 168px; overflow-y: auto; font-family: Consolas, monospace;
+    font-size: 12px; line-height: 1.65; margin-top: 12px;
+    box-shadow: inset 0 0 20px rgba(0,0,0,.8);
+  }
+  #combatLog .lp { color: var(--neon); }
+  #combatLog .le { color: var(--neon2); }
+  #combatLog .lg { color: var(--gold); }
+  #combatLog .ls { color: var(--dim); }
+  #combatLog .lgr { color: var(--green); }
+
+  /* ================================================================
+     KÁRTYÁK / RANGLISTA
+  ================================================================ */
+  .card-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(222px, 1fr)); gap: 11px; perspective: 1200px; }
+  .card {
+    background: linear-gradient(180deg, var(--panel3), var(--panel2));
+    border: 1px solid var(--border);
+    padding: 13px; display: flex; flex-direction: column; gap: 6px;
+    clip-path: polygon(12px 0, calc(100% - 12px) 0, 100% 12px, 100% calc(100% - 12px), calc(100% - 12px) 100%, 12px 100%, 0 calc(100% - 12px), 0 12px);
+    transition: all .15s;
+  }
+  .card:hover { border-color: var(--neon); box-shadow: 0 0 20px rgba(240,166,60,.25); }
+  .card .c-title { font-family: var(--f-head); font-weight: 700; font-size: 12px; letter-spacing: .5px; }
+  .card .c-sub { font-size: 12.5px; color: var(--dim); }
+  .card .c-foot { display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 7px; }
+  .card.boss-card {
+    border-color: var(--red);
+    box-shadow: 0 0 20px -6px rgba(216,68,46,.6), inset 0 0 24px -12px rgba(216,68,46,.5);
+    background: linear-gradient(180deg, #2c1410, var(--panel2));
+  }
+  .exp-active {
+    text-align: center; padding: 26px 14px;
+    background: linear-gradient(180deg, var(--panel3), var(--panel2));
+    border: 1px solid var(--border);
+    clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 14px, 100% calc(100% - 14px), calc(100% - 14px) 100%, 14px 100%, 0 calc(100% - 14px), 0 14px);
+  }
+  .exp-timer {
+    font-family: var(--f-head); font-size: 40px; font-weight: 900; letter-spacing: 4px;
+    color: var(--gold); text-shadow: 0 0 18px rgba(255,210,77,.6); margin: 10px 0;
+  }
+
+  /* Krónika (célok) */
+  .goal-row {
+    display: flex; align-items: center; gap: 12px;
+    background: linear-gradient(180deg, var(--panel3), var(--panel2));
+    border: 1px solid var(--border); padding: 11px 14px; margin-bottom: 8px;
+    clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px), 0 10px);
+  }
+  .goal-row .goal-ico { font-size: 24px; }
+  .goal-row .goal-name { font-family: var(--f-head); font-size: 12px; letter-spacing: .5px; }
+  .goal-row .goal-desc { font-size: 13px; color: var(--dim); }
+  .goal-row.ready { border-color: var(--gold); box-shadow: 0 0 14px -5px var(--gold); }
+  .goal-row.claimed { opacity: .55; }
+  .goal-row.grand { border-color: var(--gold); background: linear-gradient(180deg, #33240e, var(--panel2)); }
+  .goal-row.grand .goal-name { color: var(--gold); text-shadow: 0 0 10px rgba(255,210,77,.5); }
+
+  /* képesség-sorok */
+  .perk-row {
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    font-size: 12.5px; padding: 6px 8px; border-bottom: 1px dashed #3a2c1a;
+  }
+  .perk-row:not(.got) { opacity: .55; }
+
+  /* kaszt-választó (karakteralkotás) */
+  .create-skin {
+    background: linear-gradient(180deg, var(--panel3), var(--panel2));
+    border: 1px solid var(--border); padding: 10px; text-align: left; cursor: pointer;
+    transition: all .15s;
+    clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px);
+  }
+  .create-skin:hover { border-color: var(--c); }
+  .create-skin.sel { border-color: var(--c); box-shadow: 0 0 14px -4px var(--c), inset 0 0 12px -8px var(--c); }
+  .create-skin .cs-name { font-family: var(--f-head); font-size: 12px; color: var(--c); letter-spacing: 1px; }
+  .create-skin .cs-desc { font-size: 12px; color: var(--dim); margin-top: 3px; }
+  .tier-1 .c-title { color: var(--green); text-shadow: 0 0 8px rgba(125,201,94,.4); }
+  .tier-2 .c-title { color: var(--gold); text-shadow: 0 0 8px rgba(255,210,77,.4); }
+  .tier-3 .c-title { color: var(--neon2); text-shadow: 0 0 8px rgba(216,68,46,.4); }
+
+  table.rank { width: 100%; border-collapse: collapse; font-size: 14px; }
+  table.rank th {
+    text-align: left; color: var(--dim); font-family: var(--f-head); font-size: 9px; letter-spacing: 2px;
+    padding: 7px 9px; border-bottom: 1px solid var(--neon-dim);
+  }
+  table.rank td { padding: 9px; border-bottom: 1px dashed #22223e; font-weight: 500; }
+  table.rank tr:hover td { background: rgba(240,166,60,.04); }
+  table.rank tr.me { background: linear-gradient(90deg, rgba(240,166,60,.14), transparent); }
+  table.rank tr.me td:nth-child(2) { color: var(--neon); font-weight: 700; text-shadow: 0 0 8px rgba(240,166,60,.5); }
+  table.rank .fame-cell { color: var(--purple); }
+  table.rank .top1 { color: var(--gold); font-weight: bold; }
+
+  .toast {
+    position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
+    background: rgba(10,10,22,.95); border: 1px solid var(--neon); color: var(--neon);
+    padding: 11px 24px; font-size: 14px; z-index: 99; font-weight: 600; letter-spacing: .5px;
+    box-shadow: 0 0 24px rgba(240,166,60,.4); opacity: 0; transition: opacity .3s; pointer-events: none;
+    clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 10px 100%, 0 50%);
+  }
+  .toast.show { opacity: 1; }
+
+  .result-overlay {
+    position: fixed; inset: 0; background: rgba(2,2,8,.88); z-index: 50;
+    display: none; align-items: center; justify-content: center;
+    backdrop-filter: blur(3px);
+  }
+  .result-overlay.show { display: flex; }
+  .result-box {
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(240,166,60,.12), transparent 60%),
+      linear-gradient(180deg, #14142a, #0a0a16);
+    border: 2px solid var(--neon);
+    padding: 32px 40px; text-align: center; max-width: 400px;
+    box-shadow: 0 0 60px rgba(240,166,60,.35);
+    clip-path: polygon(20px 0, calc(100% - 20px) 0, 100% 20px, 100% calc(100% - 20px), calc(100% - 20px) 100%, 20px 100%, 0 calc(100% - 20px), 0 20px);
+    animation: resIn .3s ease-out;
+  }
+  @keyframes resIn { from { transform: scale(.85); opacity: 0; } }
+  .result-box.lost {
+    border-color: var(--neon2); box-shadow: 0 0 60px rgba(216,68,46,.35);
+    background: radial-gradient(ellipse at 50% 0%, rgba(216,68,46,.12), transparent 60%), linear-gradient(180deg, #1c0e18, #0a0a16);
+  }
+  .result-box h2 { font-size: 26px; font-weight: 900; letter-spacing: 5px; margin-bottom: 14px; }
+  .result-box .rewards { margin: 14px 0 20px; font-size: 16px; line-height: 1.9; font-weight: 500; }
+
+  .footer-note { text-align: center; color: #3a3a55; font-size: 10px; margin: 14px 0 4px; font-family: var(--f-head); letter-spacing: 2px; }
+
+  /* ================================================================
+     MOBIL
+  ================================================================ */
+  @media (max-width: 760px) {
+    .layout { grid-template-columns: 1fr; }
+    aside { border-right: none; border-bottom: 1px solid var(--border); flex-direction: row; flex-wrap: wrap; gap: 4px; }
+    .menu-head { display: none; }
+    .menu-btn { width: auto; margin-bottom: 0; padding: 7px 10px; font-size: 9px; }
+    .side-bars { width: 100%; margin-top: 6px; }
+    .side-char { display: none; }
+    main { padding: 10px; }
+    .tb-logo { width: 100%; justify-content: center; margin: 0 0 4px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ============ FELSŐ ERŐFORRÁS-SÁV ============ -->
+  <div id="topbar">
+    <div class="tb-logo">⚔️ VASVÁR ARÉNA <small>BAJNOKOK KORA</small></div>
+    <div class="tb-chip"><span class="ico">🛡️</span><span><span class="lab">BAJNOK</span><b id="hdrName" style="color:var(--neon)"></b></span></div>
+    <div class="tb-chip"><span class="ico">🎖️</span><span><span class="lab">SZINT</span><b id="hdrLevel">1</b></span></div>
+    <div class="tb-chip"><span class="ico">⭐</span><span><span class="lab">HÍRNÉV</span><b id="hdrFame" style="color:var(--purple)">0</b></span></div>
+    <div class="tb-chip"><span class="ico">🪙</span><span><span class="lab">ARANY</span><b id="hdrCredits" style="color:var(--gold)">0</b></span></div>
+  </div>
+
+  <!-- ============ MENÜ + TARTALOM ============ -->
+  <div class="layout">
+    <aside>
+      <div class="menu-head">VÁROS</div>
+      <button class="menu-btn active" data-screen="overview"><span class="mi">🏰</span>ÁTTEKINTÉS</button>
+      <button class="menu-btn" data-screen="arena"><span class="mi">⚔️</span>ARÉNA</button>
+      <button class="menu-btn" data-screen="quests"><span class="mi">🗺️</span>PORTYA</button>
+      <button class="menu-btn" data-screen="shop"><span class="mi">💰</span>PIACTÉR</button>
+      <button class="menu-btn" data-screen="training"><span class="mi">🧪</span>ISPOTÁLY</button>
+      <div class="menu-head">RUNNER</div>
+      <button class="menu-btn" data-screen="character"><span class="mi">🛡️</span>KARAKTER</button>
+      <button class="menu-btn" data-screen="ranking"><span class="mi">🏆</span>RANGLISTA</button>
+      <button class="menu-btn" data-screen="goals"><span class="mi">📜</span>KRÓNIKA</button>
+      <button class="menu-btn danger" onclick="game.reset()" style="margin-top:10px"><span class="mi">↺</span>ÚJ KARAKTER</button>
+
+      <div class="side-bars">
+        <div class="blab">ÉLETERŐ</div>
+        <div class="bar"><div class="hp-fill" id="sideHpBar"></div><span id="sideHpText"></span></div>
+        <div class="blab">TAPASZTALAT</div>
+        <div class="bar"><div class="xp-fill" id="sideXpBar"></div><span id="sideXpText"></span></div>
+        <div class="side-char" id="sideChar"></div>
+      </div>
+    </aside>
+
+    <main>
+      <!-- ===== ÁTTEKINTÉS (városnézet) ===== -->
+      <div class="screen active" id="screen-overview">
+        <div class="frame"><div class="corner-b"></div>
+          <h2>VASVÁR</h2>
+          <div class="sub">A város a tiéd, bajnok. Kattints egy épületre!</div>
+          <div class="city3d" id="city3d">
+            <div class="c3-world" id="c3World">
+              <div class="c3-ground"></div>
+
+              <!-- háttér-tornyok -->
+              <div class="b3 deco" style="--w:64px;--d:64px;--h:210px;--c:#4a3a28;--wc:rgba(240,166,60,.20);left:14px;top:14px">
+                <div class="f top"></div><div class="f n win"></div><div class="f s win"></div><div class="f w3 win"></div><div class="f e3 win"></div>
+              </div>
+              <div class="b3 deco" style="--w:70px;--d:70px;--h:160px;--c:#4a3a28;--wc:rgba(160,107,214,.20);left:636px;top:20px">
+                <div class="f top"></div><div class="f n win"></div><div class="f s win"></div><div class="f w3 win"></div><div class="f e3 win"></div>
+              </div>
+              <div class="b3 deco" style="--w:58px;--d:58px;--h:185px;--c:#4a3a28;--wc:rgba(240,166,60,.16);left:252px;top:16px">
+                <div class="f top"></div><div class="f n win"></div><div class="f s win"></div><div class="f w3 win"></div><div class="f e3 win"></div>
+              </div>
+              <div class="b3 deco" style="--w:70px;--d:70px;--h:190px;--c:#4a3a28;--wc:rgba(216,68,46,.16);left:632px;top:612px">
+                <div class="f top"></div><div class="f n win"></div><div class="f s win"></div><div class="f w3 win"></div><div class="f e3 win"></div>
+              </div>
+              <div class="b3 deco" style="--w:60px;--d:60px;--h:140px;--c:#4a3a28;--wc:rgba(240,166,60,.18);left:20px;top:630px">
+                <div class="f top"></div><div class="f n win"></div><div class="f s win"></div><div class="f w3 win"></div><div class="f e3 win"></div>
+              </div>
+              <div class="b3 deco" style="--w:56px;--d:56px;--h:170px;--c:#4a3a28;--wc:rgba(255,210,77,.16);left:646px;top:238px">
+                <div class="f top"></div><div class="f n win"></div><div class="f s win"></div><div class="f w3 win"></div><div class="f e3 win"></div>
+              </div>
+              <div class="b3 deco" style="--w:56px;--d:56px;--h:150px;--c:#4a3a28;--wc:rgba(240,166,60,.16);left:20px;top:246px">
+                <div class="f top"></div><div class="f n win"></div><div class="f s win"></div><div class="f w3 win"></div><div class="f e3 win"></div>
+              </div>
+
+              <!-- ============ ARÉNA: lépcsős kolosszeum, kapuval és pilonokkal ============ -->
+              <div class="b3 main" style="--c:#d8442e;--wc:rgba(216,68,46,.38);--h:150px;left:88px;top:96px" onclick="switchScreen('arena')">
+                <div class="p" style="--w:190px;--d:190px;--h:64px">
+                  <div class="f top"></div><div class="f n win"></div>
+                  <div class="f s win"><div class="dr" style="width:46px;height:50px"></div></div>
+                  <div class="f w3 win"></div>
+                  <div class="f e3 win"><div class="dr"></div></div>
+                </div>
+                <div class="p" style="--w:140px;--d:140px;--h:34px;left:25px;top:25px;transform:translateZ(64px)">
+                  <div class="f top"></div><div class="f n win"></div><div class="f s win"></div><div class="f w3 win"></div><div class="f e3 win"></div>
+                </div>
+                <div class="p" style="--w:84px;--d:84px;--h:22px;left:53px;top:53px;transform:translateZ(98px)">
+                  <div class="f top"></div><div class="f n"></div><div class="f s"></div><div class="f w3"></div><div class="f e3"></div>
+                </div>
+                <div class="p" style="--w:16px;--d:16px;--h:120px;left:-6px;top:-6px">
+                  <div class="f top"></div><div class="f n"></div><div class="f s"></div><div class="f w3"></div><div class="f e3"></div>
+                </div>
+                <div class="p" style="--w:16px;--d:16px;--h:120px;left:180px;top:-6px">
+                  <div class="f top"></div><div class="f n"></div><div class="f s"></div><div class="f w3"></div><div class="f e3"></div>
+                </div>
+                <div class="p" style="--w:16px;--d:16px;--h:120px;left:-6px;top:180px">
+                  <div class="f top"></div><div class="f n"></div><div class="f s"></div><div class="f w3"></div><div class="f e3"></div>
+                </div>
+                <div class="p" style="--w:16px;--d:16px;--h:120px;left:180px;top:180px">
+                  <div class="f top"></div><div class="f n"></div><div class="f s"></div><div class="f w3"></div><div class="f e3"></div>
+                </div>
+                <div class="beacon" style="--bz:146px"></div>
+                <div class="b3-label">ARÉNA<small>⚔ harc és dicsőség</small></div>
+              </div>
+
+              <!-- ============ FEKETEPIAC: bazár előtetővel, tetőklímákkal ============ -->
+              <div class="b3 main" style="--c:#ffd24d;--wc:rgba(255,210,77,.34);--h:110px;left:444px;top:120px" onclick="switchScreen('shop')">
+                <div class="p" style="--w:170px;--d:140px;--h:52px">
+                  <div class="f top"></div><div class="f n win"></div>
+                  <div class="f s win"><div class="dr" style="width:34px;height:40px"></div></div>
+                  <div class="f w3 win"></div>
+                  <div class="f e3 win"><div class="dr"></div></div>
+                </div>
+                <div class="p awn" style="--w:182px;--d:30px;--h:7px;left:-6px;top:134px;transform:translateZ(36px)">
+                  <div class="f top"></div><div class="f n"></div><div class="f s"></div><div class="f w3"></div><div class="f e3"></div>
+                </div>
+                <div class="p dark" style="--w:28px;--d:20px;--h:13px;left:22px;top:18px;transform:translateZ(52px)">
+                  <div class="f top"></div><div class="f n"></div><div class="f s"></div><div class="f w3"></div><div class="f e3"></div>
+                </div>
+                <div class="p dark" style="--w:24px;--d:18px;--h:10px;left:118px;top:84px;transform:translateZ(52px)">
+                  <div class="f top"></div><div class="f n"></div><div class="f s"></div><div class="f w3"></div><div class="f e3"></div>
+                </div>
+                <div class="p" style="--w:14px;--d:14px;--h:92px;left:162px;top:-10px">
+                  <div class="f top"></div><div class="f n"></div><div class="f s"></div><div class="f w3"></div><div class="f e3"></div>
+                </div>
+                <div class="beacon" style="--bz:104px"></div>
+                <div class="b3-label">PIACTÉR<small>💰 fegyver · páncél · amulett</small></div>
+              </div>
+
+              <!-- ============ KIBERKLINIKA: kórház világító kereszttel ============ -->
+              <div class="b3 main" style="--c:#7dc95e;--wc:rgba(125,201,94,.32);--h:160px;left:96px;top:444px" onclick="switchScreen('training')">
+                <div class="p" style="--w:180px;--d:150px;--h:58px">
+                  <div class="f top"></div><div class="f n win"></div>
+                  <div class="f s win"><div class="dr" style="width:36px;height:42px"></div></div>
+                  <div class="f w3 win"></div>
+                  <div class="f e3 win"><div class="dr"></div></div>
+                </div>
+                <div class="p" style="--w:54px;--d:54px;--h:36px;left:63px;top:48px;transform:translateZ(58px)">
+                  <div class="f top"></div><div class="f n win"></div><div class="f s win"></div><div class="f w3 win"></div><div class="f e3 win"></div>
+                </div>
+                <div class="p glow" style="--w:12px;--d:12px;--h:34px;left:84px;top:69px;transform:translateZ(100px)">
+                  <div class="f top"></div><div class="f n"></div><div class="f s"></div><div class="f w3"></div><div class="f e3"></div>
+                </div>
+                <div class="p glow" style="--w:36px;--d:12px;--h:12px;left:72px;top:69px;transform:translateZ(111px)">
+                  <div class="f top"></div><div class="f n"></div><div class="f s"></div><div class="f w3"></div><div class="f e3"></div>
+                </div>
+                <div class="p dark" style="--w:26px;--d:18px;--h:10px;left:18px;top:112px;transform:translateZ(58px)">
+                  <div class="f top"></div><div class="f n"></div><div class="f s"></div><div class="f w3"></div><div class="f e3"></div>
+                </div>
+                <div class="b3-label">ISPOTÁLY<small>🧪 edzés · gyógyulás</small></div>
+              </div>
+
+              <!-- ============ RANGLISTA: lépcsős felhőkarcoló antennával ============ -->
+              <div class="b3 main" style="--c:#a06bd6;--wc:rgba(160,107,214,.36);--h:250px;left:452px;top:436px" onclick="switchScreen('ranking')">
+                <div class="p" style="--w:150px;--d:150px;--h:84px">
+                  <div class="f top"></div><div class="f n win"></div>
+                  <div class="f s win"><div class="dr" style="width:32px;height:40px"></div></div>
+                  <div class="f w3 win"></div>
+                  <div class="f e3 win"><div class="dr"></div></div>
+                </div>
+                <div class="p" style="--w:112px;--d:112px;--h:62px;left:19px;top:19px;transform:translateZ(84px)">
+                  <div class="f top"></div><div class="f n win"></div><div class="f s win"></div><div class="f w3 win"></div><div class="f e3 win"></div>
+                </div>
+                <div class="p" style="--w:72px;--d:72px;--h:48px;left:39px;top:39px;transform:translateZ(146px)">
+                  <div class="f top"></div><div class="f n win"></div><div class="f s win"></div><div class="f w3 win"></div><div class="f e3 win"></div>
+                </div>
+                <div class="p" style="--w:8px;--d:8px;--h:52px;left:71px;top:71px;transform:translateZ(194px)">
+                  <div class="f top"></div><div class="f n"></div><div class="f s"></div><div class="f w3"></div><div class="f e3"></div>
+                </div>
+                <div class="beacon" style="--bz:252px"></div>
+                <div class="b3-label">RANGLISTA<small>🏆 top bajnokok</small></div>
+              </div>
+            </div>
+            <div class="c3-fog"></div>
+            <div class="c3-hint">↖ mozgasd az egeret a város felett</div>
+          </div>
+          <div class="divider"></div>
+          <div id="overviewNews" style="font-size:14px;color:var(--dim);line-height:1.85"></div>
+        </div>
+      </div>
+
+      <!-- ===== KARAKTER (paperdoll + rácsos táska) ===== -->
+      <div class="screen" id="screen-character">
+        <div class="frame"><div class="corner-b"></div>
+          <h2>BAJNOK-PROFIL</h2>
+          <div class="sub" id="charSub"></div>
+          <div class="char-layout">
+            <div class="doll-board">
+              <h3>// FELSZERELÉS</h3>
+              <div class="doll-grid" id="dollGrid"></div>
+              <div id="statPointsRow" style="display:none;color:var(--gold);font-size:13px;margin-top:12px;text-align:center">
+                ⬆ Elosztható stat pont: <b id="statPoints">0</b>
+              </div>
+              <div class="stat-grid" id="statList"></div>
+              <div class="derived" id="derivedStats"></div>
+              <div class="divider"></div>
+              <h3>// KÉPESSÉGEK</h3>
+              <div id="perkList"></div>
+            </div>
+            <div class="bag-board">
+              <h3>// TÁSKA</h3>
+              <div class="bag-grid" id="bagGrid"></div>
+              <div class="item-detail" id="itemDetail"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== ARÉNA ===== -->
+      <div class="screen" id="screen-arena">
+        <div class="frame" id="opponentSelect"><div class="corner-b"></div>
+          <h2>ARÉNA — KIHÍVÁS</h2>
+          <div class="sub">Válassz helyszínt és ellenfelet! Az erősebb ellenfél és a veszélyesebb porond többet fizet.</div>
+          <div class="loc-bar" id="locationBar"></div>
+          <div class="sub" id="locationDesc" style="margin-bottom:12px"></div>
+          <div class="card-list" id="opponentList"></div>
+        </div>
+
+        <div id="combatView" style="display:none">
+          <div class="frame"><div class="corner-b"></div>
+            <h2 id="combatTitle">ARÉNAHARC</h2>
+            <div id="battleStage"></div>
+            <div class="combat-arena">
+              <div class="fighter player-side">
+                <h3 id="cPlayerName"></h3>
+                <div class="bar"><div class="hp-fill" id="cPlayerHp"></div><span id="cPlayerHpText"></span></div>
+                <div style="height:5px"></div>
+                <div class="bar"><div class="en-fill" id="cPlayerEn"></div><span id="cPlayerEnText"></span></div>
+                <div class="mini" id="cPlayerBuffs"></div>
+              </div>
+              <div class="vs-badge">VS</div>
+              <div class="fighter enemy-side">
+                <h3 id="cEnemyName"></h3>
+                <div class="bar"><div class="hp-fill" id="cEnemyHp"></div><span id="cEnemyHpText"></span></div>
+                <div class="intent" id="enemyIntent"></div>
+              </div>
+            </div>
+            <div class="actions" id="actionButtons"></div>
+            <div id="combatLog"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== PORTYA ===== -->
+      <div class="screen" id="screen-quests">
+        <div class="frame"><div class="corner-b"></div>
+          <h2>PORTYA</h2>
+          <div class="sub">Küldd portyára a csapatod — valós időben telik, akkor is, ha bezárod a játékot!<br>
+          <span id="questLocNote" style="color:var(--dim);font-size:12px"></span></div>
+          <div id="questContent"></div>
+        </div>
+      </div>
+
+      <!-- ===== BOLT ===== -->
+      <div class="screen" id="screen-shop">
+        <div class="frame"><div class="corner-b"></div>
+          <h2>PIACTÉR</h2>
+          <div class="sub">A kereskedő készlete a szintedhez igazodik, és minden szintlépésnél frissül. Eladni a karakterlapon tudsz.</div>
+          <div id="shopActions" style="text-align:center;margin-bottom:12px"></div>
+          <div class="card-list" id="shopList"></div>
+        </div>
+      </div>
+
+      <!-- ===== EDZÉS ===== -->
+      <div class="screen" id="screen-training">
+        <div class="frame"><div class="corner-b"></div>
+          <h2>ISPOTÁLY</h2>
+          <div class="sub">Aranyért véglegesen növelheted az alapstatjaidat. Az ár minden fejlesztéssel nő.</div>
+          <div class="card-list" id="trainingList"></div>
+          <div class="divider"></div>
+          <div style="text-align:center">
+            <button class="act" id="healBtn" onclick="game.healUp()"></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== RANGLISTA ===== -->
+      <div class="screen" id="screen-ranking">
+        <div class="frame"><div class="corner-b"></div>
+          <h2>VASVÁR — RANGLISTA</h2>
+          <div class="sub">Hívd ki a többi bajnokot a hírnevükért! Győzelem: +hírnév és arany. Vereség: -hírnév.<br>
+          <span id="rankMode" style="color:#666;font-size:11px">Helyi riválisok</span></div>
+          <div id="podiumWrap"></div>
+          <table class="rank">
+            <thead><tr><th>#</th><th>BAJNOK</th><th>SZINT</th><th>HÍRNÉV</th><th></th></tr></thead>
+            <tbody id="rankBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ===== KRÓNIKA (célok) ===== -->
+      <div class="screen" id="screen-goals">
+        <div class="frame"><div class="corner-b"></div>
+          <h2>KRÓNIKA</h2>
+          <div class="sub">A tetteid könyve — teljesítsd a célokat, és vedd át a jutalmad!<br>
+          A végső cél: győzd le mind a 4 helyszín bossát, és légy <b style="color:var(--gold)">A Bajnokok Bajnoka</b>!</div>
+          <div id="goalList"></div>
+        </div>
+      </div>
+
+      <div class="footer-note">VASVÁR ARÉNA v5</div>
+    </main>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- karakteralkotás (első indítás / új karakter) -->
+<div class="result-overlay" id="createOverlay">
+  <div class="result-box" style="max-width:540px">
+    <h2 style="color:var(--gold);text-shadow:0 0 20px rgba(255,210,77,.6)">ÜDVÖZÖL VASVÁR!</h2>
+    <div style="font-size:14px;color:var(--dim);margin:10px 0;line-height:1.6">
+      Add meg a neved, válassz kasztot, és lépj a porondra!<br>
+      💡 <b style="color:var(--text)">Harci tipp:</b> az ellenfél mindig előre jelzi a szándékát —
+      figyeld a <span style="color:var(--gold)">★ ELLENSZER</span> jelölést, és foroghatsz fölébe akkor is, ha gyengébb vagy!
+    </div>
+    <input id="createName" maxlength="16" placeholder="A neved..." style="
+      background:rgba(0,0,0,.5);border:1px solid var(--border);color:var(--text);
+      font-family:var(--f-head);font-size:15px;letter-spacing:1px;text-align:center;
+      padding:10px 14px;width:80%;margin-bottom:14px;outline:none">
+    <div id="createSkins" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px"></div>
+    <button class="act gold" onclick="game.confirmCreate()" style="font-size:13px;padding:10px 26px">⚔️ A PORONDRA!</button>
+  </div>
+</div>
+
+<div class="result-overlay" id="resultOverlay">
+  <div class="result-box" id="resultBox">
+    <h2 id="resultTitle"></h2>
+    <div class="rewards" id="resultRewards"></div>
+    <button class="act gold" onclick="game.closeResult()">FOLYTATÁS</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+const SAVE_KEY = 'neon_arena_save_v1';
+
+/* ============================================================
+   JÁTÉKOS-PORTRÉ (SVG)
+============================================================ */
+const PLAYER_SVG = `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="pvHelm" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a4470"/>
+      <stop offset="0.5" stop-color="#232b4d"/>
+      <stop offset="1" stop-color="#161c36"/>
+    </linearGradient>
+    <linearGradient id="pvVisor" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#f0a63c"/>
+      <stop offset="0.5" stop-color="#7ff9ff"/>
+      <stop offset="1" stop-color="#00c0dd"/>
+    </linearGradient>
+    <filter id="pvGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="2" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <path d="M18 120 Q22 94 44 90 L76 90 Q98 94 102 120 Z" fill="#1b2340" stroke="#f0a63c" stroke-width="1.6"/>
+  <path d="M18 120 Q20 104 30 98 L34 120 Z" fill="#d8442e" opacity=".85"/>
+  <path d="M102 120 Q100 104 90 98 L86 120 Z" fill="#d8442e" opacity=".85"/>
+  <rect x="52" y="90" width="16" height="8" fill="#0c1226"/>
+  <rect x="52" y="82" width="16" height="12" fill="#141a30"/>
+  <path d="M54 14 L60 2 L66 14 Z" fill="#d8442e" filter="url(#pvGlow)"/>
+  <path d="M47 17 L51 8 L55 17 Z" fill="#d8442e" opacity=".7"/>
+  <path d="M65 17 L69 8 L73 17 Z" fill="#d8442e" opacity=".7"/>
+  <path d="M60 12 Q90 12 90 46 Q90 70 80 80 Q71 88 60 88 Q49 88 40 80 Q30 70 30 46 Q30 12 60 12 Z"
+    fill="url(#pvHelm)" stroke="#f0a63c" stroke-width="1.8"/>
+  <circle cx="30" cy="52" r="8" fill="#161c36" stroke="#f0a63c" stroke-width="1.5"/>
+  <circle cx="90" cy="52" r="8" fill="#161c36" stroke="#f0a63c" stroke-width="1.5"/>
+  <circle cx="30" cy="52" r="3" fill="#f0a63c" filter="url(#pvGlow)"/>
+  <circle cx="90" cy="52" r="3" fill="#f0a63c" filter="url(#pvGlow)"/>
+  <path d="M36 40 L84 40 L81 58 L39 58 Z" fill="url(#pvVisor)" filter="url(#pvGlow)" opacity=".95"/>
+  <line x1="42" y1="49" x2="78" y2="49" stroke="#fff" stroke-width="1.2" opacity=".7"/>
+  <rect x="46" y="26" width="28" height="4" rx="2" fill="#0c1226"/>
+  <circle cx="52" cy="28" r="1.6" fill="#ffd24d" filter="url(#pvGlow)"/>
+  <circle cx="60" cy="28" r="1.6" fill="#ffd24d" filter="url(#pvGlow)"/>
+  <circle cx="68" cy="28" r="1.6" fill="#ffd24d" filter="url(#pvGlow)"/>
+  <path d="M46 66 L74 66 L70 80 Q60 85 50 80 Z" fill="#10152b" stroke="#f0a63c" stroke-width="1"/>
+  <line x1="52" y1="70" x2="52" y2="77" stroke="#f0a63c" stroke-width="1.2" opacity=".7"/>
+  <line x1="58" y1="70" x2="58" y2="78" stroke="#f0a63c" stroke-width="1.2" opacity=".7"/>
+  <line x1="64" y1="70" x2="64" y2="78" stroke="#f0a63c" stroke-width="1.2" opacity=".7"/>
+  <line x1="70" y1="70" x2="70" y2="76" stroke="#f0a63c" stroke-width="1.2" opacity=".7"/>
+</svg>`;
+
+/* ============================================================
+   ADATOK
+============================================================ */
+const STAT_DEFS = {
+  ero:      { name: 'Erő',       icon: '💪', desc: 'növeli a sebzést' },
+  ugyesseg: { name: 'Ügyesség',  icon: '🎯', desc: 'találati és kitérési esély' },
+  reflex:   { name: 'Reflex',    icon: '⚡', desc: 'kritikus találat esélye' },
+  technika: { name: 'Mágia',     icon: '🔮', desc: 'a rontás erőssége és esélye' },
+  kitartas: { name: 'Kitartás',  icon: '❤️', desc: 'maximális életerő' },
+};
+
+/* ============================================================
+   TÁRGY-GENERÁTOR — ritkaságok, véletlen bónuszok, végtelen zsákmány
+============================================================ */
+const RARITIES = [
+  { name: 'Közönséges', color: '#b8b0a0', mult: 1.0,  affixes: 0, w: 55 },
+  { name: 'Kiváló',     color: '#7dc95e', mult: 1.15, affixes: 1, w: 25 },
+  { name: 'Ritka',      color: '#5aa0e8', mult: 1.32, affixes: 2, w: 13 },
+  { name: 'Epikus',     color: '#a06bd6', mult: 1.55, affixes: 3, w: 6 },
+  { name: 'Legendás',   color: '#f0a63c', mult: 1.85, affixes: 4, w: 1 },
+];
+const SLOT_BASES = {
+  weapon:    { icon: '🗡️', main: 'dmg',   armorF: 0,   names: ['Vaskard', 'Vadászkés', 'Buzogány', 'Hosszúkard', 'Csatabárd', 'Számszeríj', 'Pallos', 'Rúnapenge'] },
+  armor:     { icon: '🛡️', main: 'armor', armorF: 1,   names: ['Bőrvért', 'Vastagbőr zeke', 'Láncing', 'Pikkelyvért', 'Lemezvért', 'Bajnoki vért'] },
+  helmet:    { icon: '⛑️', main: 'armor', armorF: 0.5, names: ['Bőrsapka', 'Vassisak', 'Zárt sisak', 'Rohamsisak', 'Sárkánysisak'] },
+  boots:     { icon: '🥾', main: 'armor', armorF: 0.4, names: ['Rongyos csizma', 'Bőrcsizma', 'Vasalt csizma', 'Lovagi csizma', 'Sárkánybőr csizma'] },
+  accessory: { icon: '🧣', main: 'stats', armorF: 0,   names: ['Gyapjúköpeny', 'Utazóköpeny', 'Címeres köpeny', 'Bajnoki palást', 'Árnyékköpeny'] },
+  implant:   { icon: '📿', main: 'stats', armorF: 0,   names: ['Csont amulett', 'Réz talizmán', 'Ezüst medál', 'Arany talizmán', 'Rúnakő'] },
+};
+const AFFIXES = [
+  { stat: 'ero',      pre: 'Erős',           suf: 'a Bika Erejével' },
+  { stat: 'ugyesseg', pre: 'Fürge',          suf: 'a Macska Kegyével' },
+  { stat: 'reflex',   pre: 'Villámgyors',    suf: 'a Sólyom Szemével' },
+  { stat: 'technika', pre: 'Rúnavésett',     suf: 'az Ősök Igéjével' },
+  { stat: 'kitartas', pre: 'Rendíthetetlen', suf: 'a Medve Szívével' },
+];
+function uid() { return 'it' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function rollRarity(minRarity) {
+  const total = RARITIES.reduce((s, r) => s + r.w, 0);
+  let roll = Math.random() * total;
+  let idx = 0;
+  for (let i = 0; i < RARITIES.length; i++) { roll -= RARITIES[i].w; if (roll <= 0) { idx = i; break; } }
+  return Math.max(idx, minRarity || 0);
+}
+function genItem(level, slot, minRarity) {
+  level = Math.max(1, level || 1);
+  const slots = Object.keys(SLOT_BASES);
+  slot = slot || slots[Math.floor(Math.random() * slots.length)];
+  const ri = rollRarity(minRarity);
+  const R = RARITIES[ri];
+  const base = SLOT_BASES[slot];
+  let name = base.names[Math.min(base.names.length - 1, Math.floor((level - 1) / 2))];
+  const stats = {};
+  const pool = [...AFFIXES].sort(() => Math.random() - 0.5).slice(0, R.affixes);
+  for (const a of pool) stats[a.stat] = (stats[a.stat] || 0) + 1 + Math.floor(level / 4) + Math.floor(ri / 2);
+  if (pool.length >= 1) name = pool[0].pre + ' ' + name.toLowerCase();
+  if (pool.length >= 3) name += ' ' + pool[1].suf;
+  let dmg = null, armor = 0;
+  if (slot === 'weapon') {
+    const mn = Math.max(2, Math.round((2 + level * 1.7) * R.mult));
+    dmg = [mn, Math.round(mn * 1.55)];
+  } else if (base.armorF > 0) {
+    armor = Math.max(1, Math.round((1 + level * 0.9) * R.mult * base.armorF));
+  }
+  const price = Math.round((18 + level * 13) * (1 + ri * 0.9) * (slot === 'weapon' ? 1.25 : 1));
+  return { uid: uid(), slot, name, icon: base.icon, rarity: ri, level, dmg, armor, stats, price };
+}
+function starterWeapon() {
+  return { uid: 'starter', slot: 'weapon', name: 'Rozsdás vaskard', icon: '🗡️', rarity: 0, level: 1, dmg: [3, 6], armor: 0, stats: {}, price: 0 };
+}
+/* régi (v1) mentések tárgyainak átalakítása */
+const LEGACY_ITEMS = {
+  w1: { slot: 'weapon', name: 'Rozsdás vaskard', dmg: [3, 6], lvl: 1 },
+  w2: { slot: 'weapon', name: 'Vadászkés', dmg: [5, 9], lvl: 1 },
+  w3: { slot: 'weapon', name: 'Szegecselt buzogány', dmg: [7, 12], lvl: 2, stats: { ero: 1 } },
+  w4: { slot: 'weapon', name: 'Hosszúkard', dmg: [10, 16], lvl: 3, stats: { reflex: 2 } },
+  w5: { slot: 'weapon', name: 'Csatabárd', dmg: [14, 22], lvl: 4, stats: { ero: 2 } },
+  w6: { slot: 'weapon', name: 'Erdei számszeríj', dmg: [18, 30], lvl: 6, stats: { reflex: 2, ugyesseg: 2 } },
+  w7: { slot: 'weapon', name: 'Rúnapenge', dmg: [26, 40], lvl: 8, stats: { ero: 3, reflex: 3 } },
+  a1: { slot: 'armor', name: 'Foltozott bőrvért', armor: 1, lvl: 1 },
+  a2: { slot: 'armor', name: 'Vastagbőr zeke', armor: 3, lvl: 2 },
+  a3: { slot: 'armor', name: 'Láncing', armor: 5, lvl: 3, stats: { kitartas: 1 } },
+  a4: { slot: 'armor', name: 'Pikkelyvért', armor: 8, lvl: 5, stats: { kitartas: 2 } },
+  a5: { slot: 'armor', name: 'Bajnoki lemezvért', armor: 12, lvl: 7, stats: { kitartas: 3, ugyesseg: 2 } },
+  i1: { slot: 'implant', name: 'Sólyomszem amulett', lvl: 1, stats: { reflex: 2 } },
+  i2: { slot: 'implant', name: 'Bikaerő talizmán', lvl: 2, stats: { ero: 2 } },
+  i3: { slot: 'implant', name: 'Macskaléptű gyűrű', lvl: 3, stats: { ugyesseg: 3 } },
+  i4: { slot: 'implant', name: 'Varázslók köve', lvl: 4, stats: { technika: 4 } },
+  i5: { slot: 'implant', name: 'Berserker vérköve', lvl: 6, stats: { ero: 3, reflex: 3 } },
+};
+function legacyToItem(id) {
+  if (id && typeof id === 'object') return id;   // már objektum
+  const l = LEGACY_ITEMS[id];
+  if (!l) return null;
+  if (id === 'w1') return starterWeapon();
+  return {
+    uid: uid(), slot: l.slot, name: l.name, icon: SLOT_BASES[l.slot].icon,
+    rarity: l.lvl >= 6 ? 2 : l.lvl >= 3 ? 1 : 0, level: l.lvl,
+    dmg: l.dmg || null, armor: l.armor || 0, stats: l.stats || {},
+    price: Math.round((18 + l.lvl * 13) * 1.2),
+  };
+}
+const EQUIP_SLOTS = ['weapon', 'armor', 'helmet', 'boots', 'accessory', 'implant'];
+
+const LOCATIONS = [
+  { id: 'rust', name: 'Sárfészek', icon: '🏚️', minLevel: 1, mult: 1.0, rewardMult: 1.0, color: '#7dc95e',
+    desc: 'Falu széli porond a mocsár mellett — itt kezd minden bajnok.',
+    enemies: [
+      ['Óriáspatkány|🐀','Részeg útonálló|🍺','Csontváz szolga|💀','Éhes farkas|🐺'],
+      ['Kóbor zsoldos|🗡️','Orvvadász|🏹','Mocsári rém|🐍'],
+      ['A Patkánykirály|👑','Vérszomjas Ordas|🐺','Lápi boszorkány|🧙'],
+    ], boss: { name: 'A Mocsárkirály', emoji: '👹' } },
+  { id: 'market', name: 'Piactéri Porond', icon: '🏪', minLevel: 3, mult: 1.25, rewardMult: 1.4, color: '#ffd24d',
+    desc: 'Zsúfolt vásártér — a tolvajcéh szemmel tart.',
+    enemies: [
+      ['Zsebmetsző|🎭','Piaci tolvaj|🗡️','Kóbor véreb|🐕'],
+      ['Céhes verőlegény|💪','Álarcos orgyilkos|🥷','Vándor kardmester|⚔️'],
+      ['A Céhmester|👹','Méregkeverő|🧪','Hírhedt fejvadász|🏹'],
+    ], boss: { name: 'A Céh Nagymestere', emoji: '👑' } },
+  { id: 'chrome', name: 'Várudvar', icon: '🏰', minLevel: 6, mult: 1.6, rewardMult: 1.9, color: '#8fb8e8',
+    desc: 'A király várának porondja — páncélos veteránok földje.',
+    enemies: [
+      ['Újonc strázsa|🛡️','Fegyverhordozó|🗡️','A várnagy vérebe|🐕'],
+      ['Veterán zsoldos|⚔️','Udvari varázsló|🧙','Páncélos lovag|🛡️'],
+      ['A Király Bajnoka|👑','Fekete Lovag|⚔️','Udvari főmágus|🔮'],
+    ], boss: { name: 'A Fekete Bajnok', emoji: '⚔️' } },
+  { id: 'orbit', name: 'Sárkányverem', icon: '🐉', minLevel: 10, mult: 2.1, rewardMult: 2.6, color: '#a06bd6',
+    desc: 'Ősi kazamata a hegy gyomrában — innen kevesen térnek vissza.',
+    enemies: [
+      ['Pincelidérc|👻','Óriáspók|🕷️','Csontharcos|💀'],
+      ['Nekromanta|🧙','Kriptaszörny|👹','Sírrabló|⛏️'],
+      ['A Lidérckirály|👑','Ősi Sárkányfattyú|🐉','Halálmágus|☠️'],
+    ], boss: { name: 'Vérszárnyú, az Ősi Sárkány', emoji: '🐉' } },
+];
+function currentLocation() {
+  return LOCATIONS.find(l => l.id === (state.location || 'rust')) || LOCATIONS[0];
+}
+
+/* Portyák — valós idejű, időzített küldetések (offline is telnek!) */
+const EXPEDITIONS = [
+  { id: 'short', name: 'Rövid portya',  icon: '🥾', mins: 5,  gold: 1.0, xp: 1.0, drop: 0.25, desc: 'Gyors körkép a környéken.' },
+  { id: 'hunt',  name: 'Vadászat',      icon: '🏹', mins: 15, gold: 2.8, xp: 2.8, drop: 0.55, desc: 'Fejvadász-megbízás a helyi urakért.' },
+  { id: 'war',   name: 'Nagy hadjárat', icon: '⚔️', mins: 45, gold: 7.0, xp: 7.0, drop: 1, minRarity: 1, desc: 'Hosszú menet — garantált zsákmánnyal.' },
+];
+
+const RIVAL_NAMES = [
+  'Fekete Björn','Vasökrű Ulf','Morgana','Szélfútta Kara','Vörös Rikárd','Némabárd',
+  'Ezüsthajú Eszter','Kőmarok Gerő','Villámkezű Vid','Hollószem Hanna','Ordas Endre','Sánta Farkas',
+];
+
+const TITLES = [
+  [0,   'Névtelen Szolga'],
+  [100, 'Porond-harcos'],
+  [300, 'Az Aréna Farkasa'],
+  [700, 'Vasbajnok'],
+  [1500,'A Király Kegyeltje'],
+  [3000,'Élő Legenda'],
+];
+
+/* Képességek — szintlépéssel automatikusan nyílnak */
+const PERKS = [
+  { lvl: 3,  id: 'quick2', name: 'Gyors csapás II',    desc: 'A gyors csapás sebzése 70% → 85%' },
+  { lvl: 5,  id: 'hack2',  name: 'Rontás II',          desc: '+10% rontás-esély' },
+  { lvl: 7,  id: 'stim2',  name: 'Gyógyital II',       desc: '3 gyógyital meccsenkét' },
+  { lvl: 9,  id: 'heavy2', name: 'Erős csapás II',     desc: 'Az erős csapás sebzése 170% → 200%' },
+  { lvl: 12, id: 'guard2', name: 'Védekezés II',       desc: 'Erősebb blokk és visszatámadás' },
+  { lvl: 15, id: 'crit2',  name: 'Halálos precizitás', desc: '+8% kritikus esély' },
+];
+function hasPerk(id) {
+  const p = PERKS.find(x => x.id === id);
+  return !!p && state.level >= p.lvl;
+}
+
+/* Krónika — célok és jutalmak; a végcél: mind a 4 boss */
+const GOALS = [
+  { id: 'win1',    name: 'Első vér',           desc: 'Nyerd meg az első arénaharcod', gold: 50,   check: s => s.wins >= 1 },
+  { id: 'win25',   name: 'A porond veteránja', desc: '25 győzelem',                   gold: 300,  check: s => s.wins >= 25 },
+  { id: 'fame300', name: 'Ismert név',         desc: 'Érj el 300 hírnevet',           gold: 250,  check: s => s.fame >= 300 },
+  { id: 'lvl10',   name: 'Tizedik szint',      desc: 'Érd el a 10. szintet',          gold: 400,  check: s => s.level >= 10 },
+  { id: 'rich',    name: 'Teli erszény',       desc: 'Gyűjts össze 2000 aranyat',     gold: 300,  check: s => s.credits >= 2000 },
+  { id: 'boss1',   name: 'A Mocsár ura',       desc: 'Győzd le A Mocsárkirályt',      gold: 200,  check: s => (s.bossKills.rust || 0) >= 1 },
+  { id: 'boss2',   name: 'A Céh réme',         desc: 'Győzd le A Céh Nagymesterét',   gold: 350,  check: s => (s.bossKills.market || 0) >= 1 },
+  { id: 'boss3',   name: 'Lovagok végzete',    desc: 'Győzd le A Fekete Bajnokot',    gold: 500,  check: s => (s.bossKills.chrome || 0) >= 1 },
+  { id: 'boss4',   name: 'Sárkányölő',         desc: 'Győzd le Vérszárnyút',          gold: 800,  check: s => (s.bossKills.orbit || 0) >= 1 },
+  { id: 'grand',   name: '👑 A BAJNOKOK BAJNOKA', desc: 'Győzd le mind a 4 helyszín bossát — ezzel megnyerted az alapjátékot!', gold: 1500, legendary: true,
+    check: s => ['rust', 'market', 'chrome', 'orbit'].every(k => (s.bossKills[k] || 0) >= 1) },
+];
+
+const ACTIONS = {
+  quick: { name:'Gyors csapás', cost:0,  desc:'70% sebzés, +10% találat, +15 energia. Megszakítja az ellenfél varázslását.' },
+  heavy: { name:'Erős csapás',  cost:30, desc:'170% sebzés, -10% találat. Áttöri a védekezést.' },
+  guard: { name:'Védekezés',    cost:0,  desc:'60% sebzéscsökkentés, +25 energia. Erős csapásra visszatámad.' },
+  hack:  { name:'Rontás',       cost:35, desc:'Mágia-alapú esély: az ellenfél kihagyja a következő körét.' },
+  stim:  { name:'Gyógyital',    cost:0,  desc:'Gyógyít 30% életerőt. Meccsenkét 2× használható.' },
+};
+
+/* ============================================================
+   ÁLLAPOT
+============================================================ */
+let state = null;
+let combat = null;
+let selectedInv = -1;
+
+function defaultState() {
+  return {
+    name: 'Bajnok_' + Math.floor(Math.random()*900+100),
+    level: 1, xp: 0, credits: 150, statPoints: 0, fame: 0,
+    stats: { ero: 5, ugyesseg: 5, reflex: 3, technika: 3, kitartas: 5 },
+    trained: {},
+    equipment: { weapon: starterWeapon(), armor: null, helmet: null, boots: null, accessory: null, implant: null },
+    inventory: [],
+    hp: 0,
+    rivals: null,
+    wins: 0, losses: 0,
+    location: 'rust',
+    skin: 'ronin',
+    saveV: 2,
+    theme: 'fantasy',
+    shopStock: [], shopLevel: 0,
+    expedition: null,
+    lastDaily: '',
+    created: false,
+    bossKills: {},
+    claimed: [],
+  };
+}
+
+function migrate() {
+  if (state.fame === undefined) state.fame = 0;
+  if (state.rivals === undefined) state.rivals = null;
+  if (state.wins === undefined) { state.wins = 0; state.losses = 0; }
+  if (state.location === undefined) state.location = 'rust';
+  if (state.skin === undefined) state.skin = 'ronin';
+  if (state.theme !== 'fantasy') {   // témaváltás: új (fantasy) riválisok, a saját haladás marad
+    state.theme = 'fantasy';
+    state.rivals = null;
+    if (/^Runner_/.test(state.name)) state.name = state.name.replace('Runner_', 'Bajnok_');
+  }
+  if (!state.saveV || state.saveV < 2) {   // v2: tárgy-objektumok + 6 slot
+    const eq = state.equipment || {};
+    state.equipment = {
+      weapon: legacyToItem(eq.weapon) || starterWeapon(),
+      armor: legacyToItem(eq.armor),
+      helmet: null, boots: null, accessory: null,
+      implant: legacyToItem(eq.implant),
+    };
+    state.inventory = (state.inventory || []).map(legacyToItem).filter(Boolean);
+    state.saveV = 2;
+  }
+  if (state.shopStock === undefined) { state.shopStock = []; state.shopLevel = 0; }
+  if (state.expedition === undefined) state.expedition = null;
+  if (state.lastDaily === undefined) state.lastDaily = '';
+  if (state.created === undefined) state.created = true;   // meglévő játékos: nem kell újra karaktert alkotni
+  if (state.bossKills === undefined) state.bossKills = {};
+  if (state.claimed === undefined) state.claimed = [];
+}
+
+function xpNeeded(level) { return 40 + level * 60; }
+
+function gearBonus(stat) {
+  let b = 0;
+  for (const slot of EQUIP_SLOTS) {
+    const it = state.equipment[slot];
+    if (it && it.stats && it.stats[stat]) b += it.stats[stat];
+  }
+  return b;
+}
+function totalStat(stat) { return state.stats[stat] + gearBonus(stat); }
+
+function maxHp() { return 40 + totalStat('kitartas') * 9 + state.level * 6; }
+function weaponDmg() {
+  const w = state.equipment.weapon;
+  return w && w.dmg ? w.dmg : [2, 4];
+}
+function armorVal() {
+  let a = 0;
+  for (const slot of EQUIP_SLOTS) {
+    const it = state.equipment[slot];
+    if (it && it.armor) a += it.armor;
+  }
+  return a;
+}
+function playerTitle() {
+  if (state.claimed && state.claimed.includes('grand')) return 'A Bajnokok Bajnoka 👑';
+  let t = TITLES[0][1];
+  for (const [f, name] of TITLES) if (state.fame >= f) t = name;
+  return t;
+}
+function rarityClass(it) { return 'br' + (it.rarity || 0); }
+function rarityName(it) { return RARITIES[it.rarity || 0].name; }
+function rarityColor(it) { return RARITIES[it.rarity || 0].color; }
+function coloredName(it) { return `<span style="color:${rarityColor(it)}">${it.icon} ${it.name}</span>`; }
+
+/* ============================================================
+   RIVÁLISOK
+============================================================ */
+function ensureRivals() {
+  if (state.rivals && state.rivals.length) return;
+  state.rivals = RIVAL_NAMES.map(name => {
+    const lvl = Math.max(1, state.level + Math.floor(Math.random() * 6) - 2);
+    return { name, level: lvl, fame: Math.floor(lvl * 80 + Math.random() * 120) };
+  });
+  save();
+}
+function tickRivals() {
+  if (!state.rivals) return;
+  for (const r of state.rivals) {
+    if (Math.random() < 0.5) r.fame += Math.floor(Math.random() * 12);
+    if (r.fame > (r.level + 1) * 120 && Math.random() < 0.3) r.level++;
+  }
+}
+
+/* ============================================================
+   MENTÉS
+============================================================ */
+function save() { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }
+function load() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (raw) { state = JSON.parse(raw); migrate(); return; }
+  } catch (e) {}
+  state = defaultState();
+  state.hp = maxHp();
+  save();
+}
+
+/* ============================================================
+   UI SEGÉDEK
+============================================================ */
+const $ = id => document.getElementById(id);
+let toastTimer = null;
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+/* harci effektek */
+function lunge(side) {
+  const el = document.querySelector(side === 'enemy' ? '.fighter.enemy-side' : '.fighter.player-side');
+  if (!el || !el.offsetParent) return;
+  const cls = side === 'enemy' ? 'lungeL' : 'lungeR';
+  el.classList.remove('lungeR', 'lungeL');
+  void el.offsetWidth;
+  el.classList.add(cls);
+  setTimeout(() => el.classList.remove(cls), 480);
+}
+
+function fx(side, text, cls) {
+  const host = document.querySelector(side === 'enemy' ? '.fighter.enemy-side' : '.fighter.player-side');
+  if (!host || !host.offsetParent) return;
+  const el = document.createElement('div');
+  el.className = 'dmg-pop' + (cls ? ' ' + cls : '');
+  el.textContent = text;
+  el.style.left = (25 + Math.random() * 40) + '%';
+  el.style.top = (30 + Math.random() * 14) + '%';
+  host.appendChild(el);
+  if (!cls || cls === 'crit') {
+    host.classList.remove('shake', 'hitflash');
+    void host.offsetWidth;
+    host.classList.add('shake', 'hitflash');
+    if (window.Battle3D) Battle3D.hit(side);
+  }
+  setTimeout(() => el.remove(), 1050);
+}
+
+function switchScreen(name) {
+  if (combat && !combat.over) { toast('Előbb fejezd be a harcot!'); return; }
+  document.querySelectorAll('.menu-btn[data-screen]').forEach(b => b.classList.toggle('active', b.dataset.screen === name));
+  document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === 'screen-' + name));
+  if (name === 'overview') renderOverview();
+  if (name === 'arena' && !combat) renderOpponents();
+  if (name === 'quests') renderQuests();
+  if (name === 'shop') renderShop();
+  if (name === 'training') renderTraining();
+  if (name === 'character') renderCharacter();
+  if (name === 'ranking') renderRanking();
+  if (name === 'goals') renderGoals();
+}
+
+/* ============================================================
+   KRÓNIKA (célok)
+============================================================ */
+function renderGoals() {
+  renderHeader();
+  $('goalList').innerHTML = GOALS.map(g => {
+    const claimed = state.claimed.includes(g.id);
+    const done = g.check(state);
+    const status = claimed ? 'claimed' : done ? 'ready' : 'open';
+    return `<div class="goal-row ${status} ${g.legendary ? 'grand' : ''}">
+      <div class="goal-ico">${claimed ? '✅' : done ? '🎁' : '🔒'}</div>
+      <div style="flex:1">
+        <div class="goal-name">${g.name}</div>
+        <div class="goal-desc">${g.desc}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="color:var(--gold);font-weight:700">${g.gold}🪙${g.legendary ? ' + 🎁 Legendás tárgy' : ''}</div>
+        ${status === 'ready' ? `<button class="act gold" style="margin-top:4px" onclick="game.claimGoal('${g.id}')">ÁTVESZEM</button>`
+          : status === 'claimed' ? '<span style="color:var(--green);font-size:12px">teljesítve</span>'
+          : '<span style="color:var(--dim);font-size:12px">folyamatban</span>'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ============================================================
+   KARAKTERALKOTÁS
+============================================================ */
+let createSkinSel = 'ronin';
+function showCreate() {
+  $('createName').value = state.name || '';
+  createSkinSel = state.skin || 'ronin';
+  renderCreateSkins();
+  $('createOverlay').classList.add('show');
+}
+function renderCreateSkins() {
+  const skins = window.Battle3D ? Battle3D.SKINS : [];
+  $('createSkins').innerHTML = skins.map(s => `
+    <div class="create-skin ${createSkinSel === s.id ? 'sel' : ''}"
+      style="--c:#${s.accent.toString(16).padStart(6, '0')}"
+      onclick="game.selectCreateSkin('${s.id}')">
+      <div class="cs-name">${s.name}</div>
+      <div class="cs-desc">${s.desc}</div>
+    </div>`).join('');
+}
+
+function renderHeader() {
+  $('hdrName').textContent = state.name;
+  $('hdrLevel').textContent = state.level;
+  $('hdrFame').textContent = state.fame;
+  $('hdrCredits').textContent = state.credits;
+  $('sideHpBar').style.width = Math.max(0, state.hp / maxHp() * 100) + '%';
+  $('sideHpText').textContent = state.hp + ' / ' + maxHp();
+  const need = xpNeeded(state.level);
+  $('sideXpBar').style.width = Math.min(100, state.xp / need * 100) + '%';
+  $('sideXpText').textContent = state.xp + ' / ' + need;
+  $('sideChar').innerHTML =
+    `<b>${state.name}</b> — ${playerTitle()}<br>
+     <span class="fame">⭐ ${state.fame} hírnév</span><br>
+     ⚔ ${state.wins} győzelem · 💀 ${state.losses} vereség`;
+}
+
+/* ============================================================
+   ÁTTEKINTÉS
+============================================================ */
+function renderOverview() {
+  renderHeader();
+  ensureRivals();
+  const sorted = [...state.rivals, { name: state.name, fame: state.fame, me: true }]
+    .sort((a, b) => b.fame - a.fame);
+  const myRank = sorted.findIndex(r => r.me) + 1;
+  const top = sorted[0];
+  $('overviewNews').innerHTML =
+    `📜 <b style="color:var(--text)">A HÍRNÖK SZAVA:</b><br>
+     · A ranglistát jelenleg <b style="color:var(--purple)">${top.me ? 'TE vezeted! 👑' : top.name + ' vezeti'}</b> — te a <b style="color:var(--neon)">${myRank}.</b> helyen állsz.<br>
+     · Rangod: <b style="color:var(--gold)">${playerTitle()}</b> (⭐ ${state.fame} hírnév)<br>
+     · ${state.hp < maxHp() * 0.5 ? '⚠️ <span style="color:var(--red)">Sérült vagy — irány az Ispotály!</span>' : '✅ Harcra kész állapotban vagy.'}`;
+}
+
+/* ============================================================
+   KARAKTER
+============================================================ */
+const SLOT_META = {
+  helmet:    { label: 'SISAK',   icon: '⛑️' },
+  weapon:    { label: 'FEGYVER', icon: '🗡️' },
+  armor:     { label: 'PÁNCÉL',  icon: '🛡️' },
+  implant:   { label: 'AMULETT', icon: '📿' },
+  accessory: { label: 'KÖPENY',  icon: '🧣' },
+  boots:     { label: 'CSIZMA',  icon: '🥾' },
+};
+
+function slotHtml(slot, gridPos) {
+  const m = SLOT_META[slot];
+  const it = state.equipment[slot];
+  return `<div class="eq-slot ${it ? '' : 'empty-slot'}" style="${gridPos}"
+       title="${it ? itemDesc(it) + ' — kattints a levételhez' : 'üres slot'}"
+       onclick="game.unequip('${slot}')">
+    <div class="sl-icon">${it ? it.icon : m.icon}</div>
+    <div class="sl-label">${m.label}</div>
+    <div class="sl-item" ${it ? `style="color:${rarityColor(it)}"` : ''}>${it ? it.name : '— üres —'}</div>
+  </div>`;
+}
+
+function renderCharacter() {
+  renderHeader();
+  $('charSub').textContent = playerTitle() + ' · Vasvár';
+
+  $('dollGrid').innerHTML =
+    slotHtml('helmet',    'grid-column:2;grid-row:1') +
+    slotHtml('weapon',    'grid-column:1;grid-row:1') +
+    slotHtml('armor',     'grid-column:3;grid-row:1') +
+    slotHtml('implant',   'grid-column:1;grid-row:3') +
+    slotHtml('accessory', 'grid-column:3;grid-row:3') +
+    slotHtml('boots',     'grid-column:2;grid-row:3') +
+    `<div style="grid-column:2;grid-row:2;text-align:center">
+      <div id="charPreview3d"><div class="avatar-ring">${PLAYER_SVG}</div></div>
+      <div class="holo-disc"></div>
+      <div class="doll-name">${state.name}</div>
+      <div class="doll-title">⭐ ${state.fame} — ${playerTitle()}</div>
+      <span class="lvl-badge">SZINT ${state.level}</span>
+      <div class="skin-row">${(window.Battle3D ? Battle3D.SKINS : []).map(s =>
+        `<button class="skin-chip ${state.skin === s.id ? 'sel' : ''}"
+          style="--c:#${s.accent.toString(16).padStart(6, '0')}"
+          title="${s.desc}" onclick="game.selectSkin('${s.id}')">${s.name}</button>`).join('')}
+      </div>
+    </div>`;
+  if (window.Battle3D) Battle3D.mountPreview('charPreview3d', state.skin);
+
+  $('statPointsRow').style.display = state.statPoints > 0 ? 'block' : 'none';
+  $('statPoints').textContent = state.statPoints;
+
+  let html = '';
+  for (const key in STAT_DEFS) {
+    const bonus = gearBonus(key);
+    html += `<div class="stat-box" title="${STAT_DEFS[key].desc}">
+      <span>${STAT_DEFS[key].icon} ${STAT_DEFS[key].name}</span>
+      <span><span class="val">${state.stats[key]}</span>${bonus ? `<span class="bonus"> +${bonus}</span>` : ''}
+      ${state.statPoints > 0 ? `<button onclick="game.spendPoint('${key}')">+</button>` : ''}</span>
+    </div>`;
+  }
+  $('statList').innerHTML = html;
+
+  const wd = weaponDmg();
+  $('derivedStats').innerHTML =
+    `Sebzés: <b>${wd[0] + Math.round(totalStat('ero')*1.5)}–${wd[1] + Math.round(totalStat('ero')*1.5)}</b>
+     &nbsp;·&nbsp; Páncél: <b>${armorVal()}</b>
+     &nbsp;·&nbsp; Kritikus: <b>${5 + totalStat('reflex')}%</b><br>
+     Max HP: <b>${maxHp()}</b>
+     &nbsp;·&nbsp; Rontás-esély: <b>${Math.min(90, 35 + totalStat('technika') * 5 + (hasPerk('hack2') ? 10 : 0))}%</b>`;
+
+  $('perkList').innerHTML = PERKS.map(p => {
+    const got = state.level >= p.lvl;
+    return `<div class="perk-row ${got ? 'got' : ''}">
+      <span>${got ? '✅' : '🔒'} <b>${p.name}</b> <span style="color:var(--dim)">— ${p.desc}</span></span>
+      <span style="color:${got ? 'var(--green)' : 'var(--dim)'};font-size:11px">${got ? 'AKTÍV' : p.lvl + '. szint'}</span>
+    </div>`;
+  }).join('');
+
+  renderBag();
+}
+
+function renderBag() {
+  const CELLS = 15;
+  let cells = '';
+  for (let i = 0; i < CELLS; i++) {
+    const it = state.inventory[i];
+    if (it) {
+      cells += `<div class="bag-cell ${rarityClass(it)} ${selectedInv === i ? 'sel' : ''}" title="${it.name} (${rarityName(it)})"
+        onclick="game.selectInv(${i})">${it.icon}</div>`;
+    } else {
+      cells += '<div class="bag-cell empty"></div>';
+    }
+  }
+  $('bagGrid').innerHTML = cells;
+
+  const it = selectedInv >= 0 ? state.inventory[selectedInv] : null;
+  if (it) {
+    $('itemDetail').innerHTML = `
+      <div class="id-name" style="color:${rarityColor(it)}">${it.icon} ${it.name}</div>
+      <div class="id-desc">${itemDesc(it)}</div>
+      <div style="display:flex;gap:6px">
+        <button class="act" onclick="game.equip(${selectedInv})">FELVESZ</button>
+        <button class="act gold" onclick="game.sell(${selectedInv})">ELAD ${Math.floor(it.price/2)}🪙</button>
+      </div>`;
+  } else {
+    $('itemDetail').innerHTML = `<div style="color:#566;font-style:italic;text-align:center;padding-top:26px">
+      ${state.inventory.length ? 'Kattints egy tárgyra a részletekhez!' : 'A táskád üres — nézz szét a Piactéren!'}</div>`;
+  }
+}
+
+function itemDesc(it) {
+  const parts = [rarityName(it) + ' · ' + it.level + '. szint'];
+  if (it.dmg) parts.push('Sebzés ' + it.dmg[0] + '–' + it.dmg[1]);
+  if (it.armor) parts.push('Páncél +' + it.armor);
+  for (const key in STAT_DEFS) if (it.stats && it.stats[key]) parts.push(STAT_DEFS[key].name + ' +' + it.stats[key]);
+  return parts.join(', ');
+}
+
+/* ============================================================
+   BOLT
+============================================================ */
+function ensureShopStock(force) {
+  if (!force && state.shopStock.length && state.shopLevel === state.level) return;
+  state.shopStock = [];
+  for (let i = 0; i < 6; i++) {
+    state.shopStock.push(genItem(state.level + (Math.random() < 0.3 ? 1 : 0)));
+  }
+  state.shopLevel = state.level;
+  save();
+}
+
+function renderShop() {
+  renderHeader();
+  ensureShopStock();
+  $('shopActions').innerHTML = `
+    <button class="act gold" ${state.credits < 25 ? 'disabled' : ''} onclick="game.restock()">🔄 ÚJ KÉSZLET — 25🪙</button>`;
+  if (!state.shopStock.length) {
+    $('shopList').innerHTML = '<div class="card"><div class="c-sub">Elfogyott az áru — kérj új készletet!</div></div>';
+    return;
+  }
+  $('shopList').innerHTML = state.shopStock.map((it, i) => `
+    <div class="card">
+      <div class="c-title" style="color:${rarityColor(it)}">${it.icon} ${it.name}</div>
+      <div class="c-sub" style="color:${rarityColor(it)};font-size:11px">${rarityName(it)}</div>
+      <div class="c-sub">${itemDesc(it)}</div>
+      <div class="c-foot">
+        <span style="color:var(--gold);font-weight:600">🪙 ${it.price}</span>
+        <button class="act" ${state.credits < it.price ? 'disabled' : ''} onclick="game.buy(${i})">VESZEM</button>
+      </div>
+    </div>`).join('');
+}
+
+/* ============================================================
+   EDZÉS
+============================================================ */
+function trainCost(stat) {
+  const n = state.trained[stat] || 0;
+  return Math.floor(60 * Math.pow(1.35, n));
+}
+function renderTraining() {
+  renderHeader();
+  $('trainingList').innerHTML = Object.keys(STAT_DEFS).map(key => {
+    const cost = trainCost(key);
+    return `<div class="card">
+      <div class="c-title" style="color:var(--neon)">${STAT_DEFS[key].icon} ${STAT_DEFS[key].name}: ${state.stats[key]}</div>
+      <div class="c-sub">${STAT_DEFS[key].desc}</div>
+      <div class="c-foot">
+        <span style="color:var(--gold);font-weight:600">🪙 ${cost}</span>
+        <button class="act" ${state.credits < cost ? 'disabled' : ''} onclick="game.train('${key}')">+1 FEJLESZT</button>
+      </div>
+    </div>`;
+  }).join('');
+  const healCost = Math.max(10, Math.floor((maxHp() - state.hp) * 0.8));
+  const full = state.hp >= maxHp();
+  $('healBtn').textContent = full ? '✅ AZ ÉLETERŐD TELE VAN' : `🧪 GYÓGYULÁS (${state.hp}/${maxHp()}) — ${healCost}🪙`;
+  $('healBtn').disabled = full || state.credits < healCost;
+}
+
+/* ============================================================
+   PORTYA
+============================================================ */
+function fmtTime(ms) {
+  const s = Math.max(0, Math.ceil(ms / 1000));
+  const m = Math.floor(s / 60), r = s % 60;
+  return (m < 10 ? '0' : '') + m + ':' + (r < 10 ? '0' : '') + r;
+}
+
+function renderQuests() {
+  renderHeader();
+  const loc = currentLocation();
+  $('questLocNote').innerHTML = `A portya helyszíne: <b style="color:${loc.color}">${loc.icon} ${loc.name}</b> (jutalom ×${loc.rewardMult}) — az Aréna fülön válthatsz helyszínt.`;
+  const ex = state.expedition;
+  if (ex) {
+    const e = EXPEDITIONS.find(x => x.id === ex.type) || EXPEDITIONS[0];
+    const left = ex.end - Date.now();
+    const done = left <= 0;
+    $('questContent').innerHTML = `
+      <div class="exp-active">
+        <div style="font-size:44px">${e.icon}</div>
+        <div class="c-title" style="font-size:15px;margin:6px 0">${e.name}</div>
+        ${done
+          ? `<div style="color:var(--green);font-size:15px;font-weight:700;margin:8px 0">✅ A csapat visszatért!</div>
+             <button class="act gold" onclick="game.claimExpedition()">ZSÁKMÁNY BEGYŰJTÉSE</button>`
+          : `<div class="exp-timer" id="expTimer">${fmtTime(left)}</div>
+             <div style="color:var(--dim);font-size:13px">A csapatod úton van... nyugodtan harcolhatsz közben.</div>`}
+      </div>`;
+    return;
+  }
+  const L = state.level;
+  $('questContent').innerHTML = '<div class="card-list">' + EXPEDITIONS.map(e => {
+    const gold = Math.round((30 + L * 12) * e.gold * loc.rewardMult);
+    const xp = Math.round((20 + L * 8) * e.xp * loc.rewardMult);
+    return `<div class="card">
+      <div style="font-size:32px;text-align:center">${e.icon}</div>
+      <div class="c-title" style="text-align:center">${e.name}</div>
+      <div class="c-sub" style="text-align:center">${e.desc}</div>
+      <div class="c-sub">⏱ ${e.mins} perc &nbsp;·&nbsp; ~${gold}🪙 · ~${xp} XP</div>
+      <div class="c-sub" style="color:var(--gold)">${e.drop >= 1 ? '🎁 Garantált tárgy!' : 'Tárgyesély: ' + Math.round(e.drop * 100) + '%'}</div>
+      <div class="c-foot" style="justify-content:center">
+        <button class="act" onclick="game.startExpedition('${e.id}')">INDÍTÁS</button>
+      </div>
+    </div>`;
+  }).join('') + '</div>';
+}
+
+/* másodpercenkénti visszaszámláló + kész-értesítés */
+setInterval(() => {
+  if (!state || !state.expedition) return;
+  const left = state.expedition.end - Date.now();
+  const el = document.getElementById('expTimer');
+  if (el) {
+    if (left <= 0) renderQuests();
+    else el.textContent = fmtTime(left);
+  }
+}, 1000);
+
+/* ============================================================
+   RANGLISTA
+============================================================ */
+let onlineBoard = null;   // utolsó lekért élő ranglista
+
+function renderRanking() {
+  renderHeader();
+  ensureRivals();
+  renderRankingContent(null);   // helyi lista azonnal
+  if (window.Online && Online.isReady()) {
+    $('rankMode').innerHTML = '🌐 Élő ranglista betöltése...';
+    Online.leaderboard(30).then(rows => {
+      if (!document.getElementById('screen-ranking').classList.contains('active')) return;
+      if (rows && rows.length) {
+        onlineBoard = rows;
+        renderRankingContent(rows);
+      } else {
+        $('rankMode').innerHTML = 'Helyi riválisok (az élő lista még üres vagy nem elérhető)';
+      }
+    });
+  }
+}
+
+function renderRankingContent(rows) {
+  const isLive = !!rows;
+  $('rankMode').innerHTML = isLive
+    ? '🌐 <b style="color:var(--green)">ÉLŐ RANGLISTA</b> — valódi játékosok, hívd ki őket!'
+    : 'Helyi riválisok';
+  let all;
+  if (isLive) {
+    all = rows.map((r, i) => ({ name: r.name, level: r.level, fame: r.fame, idx: i, me: window.Online && r.user_id === Online.myId() }));
+    if (!all.some(x => x.me)) all.push({ name: state.name, level: state.level, fame: state.fame, me: true, idx: -1 });
+    all.sort((a, b) => b.fame - a.fame);
+  } else {
+    all = [...state.rivals.map((r, i) => ({ ...r, idx: i })), { name: state.name, level: state.level, fame: state.fame, me: true }]
+      .sort((a, b) => b.fame - a.fame);
+  }
+
+  // 3D dobogó a top 3-nak
+  const medals = ['🥇', '🥈', '🥉'];
+  const podColors = ['#ffd24d', '#c9d4f2', '#d08a4d'];
+  const podPos = [
+    { l: 112, t: 112, s: 96, h: 92 },
+    { l: 16,  t: 204, s: 86, h: 58 },
+    { l: 208, t: 24,  s: 86, h: 38 },
+  ];
+  $('podiumWrap').innerHTML = `<div class="podium"><div class="pod-world">
+    <div class="pod-ground"></div>
+    ${all.slice(0, 3).map((r, i) => { const p = podPos[i]; return `
+      <div class="b3" style="--c:${podColors[i]};--wc:${podColors[i]}44;--h:${p.h}px;left:${p.l}px;top:${p.t}px">
+        <div class="p" style="--w:${p.s}px;--d:${p.s}px;--h:${p.h}px">
+          <div class="f top"></div><div class="f n win"></div><div class="f s win"></div><div class="f w3 win"></div><div class="f e3 win"></div>
+        </div>
+        <div class="b3-label" style="font-size:11px">${medals[i]} ${r.name}${r.me ? ' (TE)' : ''}<small>⭐ ${r.fame} hírnév</small></div>
+      </div>`; }).join('')}
+  </div></div>`;
+
+  $('rankBody').innerHTML = all.map((r, pos) => `
+    <tr class="${r.me ? 'me' : ''}">
+      <td class="${pos === 0 ? 'top1' : ''}">${pos === 0 ? '👑' : (pos + 1) + '.'}</td>
+      <td>${r.name}${r.me ? ' (TE)' : ''}</td>
+      <td>${r.level}</td>
+      <td class="fame-cell">⭐ ${r.fame}</td>
+      <td style="text-align:right">${r.me || r.idx < 0 ? '' :
+        `<button class="act pink" ${state.hp < maxHp() * 0.15 ? 'disabled' : ''}
+          onclick="game.${isLive ? 'challengeOnline' : 'challengeRival'}(${r.idx})">KIHÍVÁS</button>`}</td>
+    </tr>`).join('');
+}
+
+/* ============================================================
+   ELLENFELEK (aréna PvE)
+============================================================ */
+function makeOpponents() {
+  const L = state.level;
+  const loc = currentLocation();
+  const defs = [
+    { tier: 1, label: 'KÖNNYŰ',  mult: 0.75, reward: 0.7 },
+    { tier: 2, label: 'KIEGYENLÍTETT', mult: 1.0, reward: 1.0 },
+    { tier: 3, label: 'HALÁLOS', mult: 1.35, reward: 1.7 },
+  ];
+  return defs.map((d, i) => {
+    const pool = loc.enemies[i];
+    const [name, emoji] = pool[(L + i) % pool.length].split('|');
+    const base = 4 + L * 2;
+    const m = d.mult * loc.mult;
+    return {
+      name, emoji, tier: d.tier, label: d.label,
+      hp: Math.round((35 + L * 14) * m),
+      dmgMin: Math.round((2 + L * 1.6) * m),
+      dmgMax: Math.round((5 + L * 2.6) * m),
+      ugyesseg: Math.round(base * m),
+      armor: Math.round(L * 0.8 * m),
+      xp: Math.round((18 + L * 9) * d.reward * loc.rewardMult),
+      credits: Math.round((25 + L * 14) * d.reward * loc.rewardMult),
+      fame: Math.round(d.tier * 3 * loc.rewardMult),
+    };
+  });
+}
+
+function makeBoss() {
+  const L = state.level;
+  const loc = currentLocation();
+  const m = 2.0 * loc.mult;
+  return {
+    name: loc.boss.name, emoji: loc.boss.emoji, tier: 3, boss: true,
+    hp: Math.round((70 + L * 20) * m),
+    dmgMin: Math.round((3 + L * 2.0) * m),
+    dmgMax: Math.round((6 + L * 3.1) * m),
+    ugyesseg: Math.round((5 + L * 2.1) * m * 0.85),
+    armor: Math.round(L * 1.1 * m),
+    xp: Math.round((45 + L * 16) * loc.rewardMult * 2),
+    credits: Math.round((70 + L * 26) * loc.rewardMult * 2),
+    fame: Math.round(12 * loc.rewardMult),
+  };
+}
+
+function renderOpponents() {
+  $('opponentSelect').style.display = 'block';
+  $('combatView').style.display = 'none';
+  renderHeader();
+  const loc = currentLocation();
+  $('locationBar').innerHTML = LOCATIONS.map(l => {
+    const locked = state.level < l.minLevel;
+    return `<div class="loc-tile ${l.id === loc.id ? 'sel' : ''} ${locked ? 'locked' : ''}" style="--c:${l.color}"
+      ${locked ? '' : `onclick="game.selectLocation('${l.id}')"`}>
+      <div class="loc-ico">${l.icon}</div>
+      <div class="loc-name">${l.name}</div>
+      <div class="loc-req">${locked ? '🔒 ' + l.minLevel + '. szinttől' : 'Jutalom ×' + l.rewardMult}</div>
+    </div>`;
+  }).join('');
+  $('locationDesc').innerHTML = `<span style="color:${loc.color}">${loc.icon} ${loc.name}</span> — ${loc.desc}`;
+  const ops = makeOpponents();
+  $('opponentList').innerHTML = ops.map((o, i) => `
+    <div class="card tier-${o.tier}">
+      <div style="font-size:34px;text-align:center;filter:drop-shadow(0 0 8px rgba(216,68,46,.5))">${o.emoji}</div>
+      <div class="mini-disc"></div>
+      <div class="c-title" style="text-align:center">${o.name}</div>
+      <div class="c-sub" style="text-align:center">${o.label}</div>
+      <div class="c-sub">❤ ${o.hp} &nbsp;·&nbsp; ⚔ ${o.dmgMin}–${o.dmgMax} &nbsp;·&nbsp; 🛡 ${o.armor}</div>
+      <div class="c-sub" style="color:var(--gold)">Nyeremény: ${o.credits}🪙 · ${o.xp} XP · ⭐${o.fame}</div>
+      <div class="c-foot" style="justify-content:center">
+        <button class="act pink" onclick="game.startCombat(${i})" ${state.hp < maxHp() * 0.15 ? 'disabled' : ''}>HARC!</button>
+      </div>
+    </div>`).join('');
+
+  // helyszín-boss kártya
+  const boss = makeBoss();
+  $('opponentList').innerHTML += `
+    <div class="card boss-card">
+      <div style="font-size:38px;text-align:center;filter:drop-shadow(0 0 10px rgba(216,68,46,.7))">${boss.emoji}</div>
+      <div class="mini-disc"></div>
+      <div class="c-title" style="text-align:center;color:var(--red);text-shadow:0 0 10px rgba(216,68,46,.5)">${boss.name}</div>
+      <div class="c-sub" style="text-align:center;color:var(--red);letter-spacing:2px">☠ BOSS ☠</div>
+      <div class="c-sub">❤ ${boss.hp} &nbsp;·&nbsp; ⚔ ${boss.dmgMin}–${boss.dmgMax} &nbsp;·&nbsp; 🛡 ${boss.armor}</div>
+      <div class="c-sub" style="color:var(--gold)">Nyeremény: ${boss.credits}🪙 · ${boss.xp} XP · ⭐${boss.fame} · <b style="color:#5aa0e8">garantált ritka tárgy!</b></div>
+      <div class="c-foot" style="justify-content:center">
+        <button class="act pink" onclick="game.startBossCombat()" ${state.hp < maxHp() * 0.15 ? 'disabled' : ''}>MEGKÜZDÖK VELE!</button>
+      </div>
+    </div>`;
+
+  if (state.hp < maxHp() * 0.15) {
+    $('opponentList').innerHTML += `<div class="card"><div class="c-sub" style="color:var(--red)">Túl gyenge vagy a harchoz — gyógyulj meg az Ispotályban!</div></div>`;
+  }
+}
+
+/* ============================================================
+   HARC
+============================================================ */
+const INTENTS = {
+  quick: { text: '⚡ Gyors támadásra készül', counter: null },
+  heavy: { text: '💥 MAGASRA EMELI A FEGYVERÉT — erős csapás jön!', counter: 'guard' },
+  guard: { text: '🛡 Védekező állásba helyezkedik', counter: 'heavy' },
+  hack:  { text: '🔮 Sötét igét mormol — rontást szór rád!', counter: 'quick' },
+};
+
+function pickEnemyIntent(en) {
+  const r = Math.random();
+  if (en.hp < en.maxHp * 0.3 && Math.random() < 0.3) return 'guard';
+  if (r < 0.40) return 'quick';
+  if (r < 0.70) return 'heavy';
+  if (r < 0.88) return 'guard';
+  return 'hack';
+}
+
+function log(msg, cls) {
+  const el = $('combatLog');
+  el.innerHTML += `<div class="${cls || 'ls'}">${msg}</div>`;
+  el.scrollTop = el.scrollHeight;
+}
+
+function beginCombat(enemy, opts) {
+  combat = {
+    enemy: { ...enemy, maxHp: enemy.hp, stunned: false },
+    playerEnergy: 40, playerGuarding: false, playerStunned: false,
+    stimsLeft: hasPerk('stim2') ? 3 : 2, turn: 1, over: false,
+    intent: null,
+    pvpRivalIdx: opts && opts.pvpRivalIdx !== undefined ? opts.pvpRivalIdx : null,
+    onlinePvp: !!(opts && opts.onlinePvp),
+  };
+  combat.intent = pickEnemyIntent(combat.enemy);
+  switchToArenaCombatView();
+  const isPvpFight = combat.pvpRivalIdx !== null || combat.onlinePvp;
+  const locId = isPvpFight ? 'pvp' : currentLocation().id;
+  combat.locId = isPvpFight ? null : currentLocation().id;
+  $('combatView').dataset.loc = locId;
+  $('combatTitle').textContent = isPvpFight ? 'PÁRBAJ — BAJNOKOK HARCA' : 'ARÉNAHARC — ' + currentLocation().name.toUpperCase();
+  if (window.Battle3D) Battle3D.start({
+    variant: Battle3D.variantFor(enemy.emoji || '💀'), locId, skin: state.skin,
+    enemyScale: enemy.boss ? 1.35 : 1, enemySkin: enemy.enemySkin || null,
+  });
+  $('combatLog').innerHTML = '';
+  log('— A tömeg üvölt. ' + enemy.name + ' belép az arénába! —', 'lg');
+  renderCombat();
+}
+
+function switchToArenaCombatView() {
+  document.querySelectorAll('.menu-btn[data-screen]').forEach(b => b.classList.toggle('active', b.dataset.screen === 'arena'));
+  document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === 'screen-arena'));
+  $('opponentSelect').style.display = 'none';
+  $('combatView').style.display = 'block';
+}
+
+function startCombat(idx) {
+  beginCombat(makeOpponents()[idx], {});
+}
+
+function startBossCombat() {
+  beginCombat(makeBoss(), {});
+}
+
+function challengeRival(idx) {
+  ensureRivals();
+  const r = state.rivals[idx];
+  if (!r) return;
+  const L = r.level;
+  beginCombat({
+    name: r.name,
+    emoji: '🤖',
+    tier: 2,
+    hp: Math.round(40 + L * 15),
+    dmgMin: Math.round(2 + L * 1.8),
+    dmgMax: Math.round(5 + L * 2.8),
+    ugyesseg: Math.round(4 + L * 2.2),
+    armor: Math.round(L * 0.9),
+    xp: Math.round(15 + L * 7),
+    credits: Math.round(20 + L * 12),
+    fame: Math.max(8, Math.round((r.fame - state.fame) * 0.05 + 12)),
+  }, { pvpRivalIdx: idx });
+}
+
+/* élő játékos kihívása (a feltöltött buildje ellen) */
+function challengeOnline(idx) {
+  const row = onlineBoard && onlineBoard[idx];
+  if (!row) return;
+  if (window.Online && row.user_id === Online.myId()) return;
+  const st = row.stats || {};
+  const gear = row.gear || {};
+  const wd = (gear.weapon && gear.weapon.d) ? gear.weapon.d : [2 + row.level * 1.5, 5 + row.level * 2.5];
+  let armor = 0;
+  for (const slot in gear) if (gear[slot] && gear[slot].a) armor += gear[slot].a;
+  beginCombat({
+    name: row.name,
+    emoji: '🛡️',
+    tier: 2,
+    hp: row.maxhp || (40 + (st.kitartas || 5) * 9 + row.level * 6),
+    dmgMin: Math.round(wd[0] + (st.ero || 5) * 1.5),
+    dmgMax: Math.round(wd[1] + (st.ero || 5) * 1.5),
+    ugyesseg: st.ugyesseg || (4 + row.level * 2),
+    armor,
+    xp: Math.round(15 + row.level * 7),
+    credits: Math.round(20 + row.level * 12),
+    fame: Math.max(8, Math.round((row.fame - state.fame) * 0.05 + 12)),
+    enemySkin: row.skin || 'ronin',
+  }, { onlinePvp: true });
+}
+
+function renderCombat() {
+  const c = combat;
+  $('cPlayerName').textContent = state.name;
+  $('cEnemyName').textContent = c.enemy.name;
+  $('cPlayerHp').style.width = Math.max(0, state.hp / maxHp() * 100) + '%';
+  $('cPlayerHpText').textContent = state.hp + ' / ' + maxHp();
+  $('cPlayerEn').style.width = c.playerEnergy + '%';
+  $('cPlayerEnText').textContent = 'ENERGIA: ' + c.playerEnergy;
+  $('cEnemyHp').style.width = Math.max(0, c.enemy.hp / c.enemy.maxHp * 100) + '%';
+  $('cEnemyHpText').textContent = c.enemy.hp + ' / ' + c.enemy.maxHp;
+  $('cPlayerBuffs').textContent = '🧪 Gyógyital: ' + c.stimsLeft + '×';
+  $('enemyIntent').innerHTML = c.enemy.stunned
+    ? '💫 LEBÉNULVA — kihagyja a kört!'
+    : INTENTS[c.intent].text;
+
+  const counterAction = c.enemy.stunned ? null : INTENTS[c.intent].counter;
+  $('actionButtons').innerHTML = Object.keys(ACTIONS).map(key => {
+    const a = ACTIONS[key];
+    let disabled = c.over;
+    if (key === 'stim' && (c.stimsLeft <= 0 || state.hp >= maxHp())) disabled = true;
+    if (a.cost > c.playerEnergy) disabled = true;
+    const hint = key === counterAction ? ' counter-hint' : '';
+    return `<button class="action-btn${hint}" ${disabled ? 'disabled' : ''} onclick="game.playerAction('${key}')">
+      <div class="a-name">${a.name}</div>
+      <div class="a-cost">${a.cost > 0 ? '⚡ ' + a.cost + ' energia' : key === 'stim' ? '🧪 ' + c.stimsLeft + '× maradt' : 'ingyenes'}</div>
+      <div class="a-desc">${a.desc}</div>
+    </button>`;
+  }).join('');
+  renderHeader();
+}
+
+function rollPlayerDamage(mult) {
+  const wd = weaponDmg();
+  const base = wd[0] + Math.random() * (wd[1] - wd[0]) + totalStat('ero') * 1.5;
+  return Math.max(1, Math.round(base * mult));
+}
+
+function playerAction(key) {
+  const c = combat;
+  if (!c || c.over) return;
+  const a = ACTIONS[key];
+  if (a.cost > c.playerEnergy) return;
+  c.playerEnergy -= a.cost;
+  c.playerGuarding = false;
+
+  const en = c.enemy;
+  const enemyGuards = !en.stunned && c.intent === 'guard';
+
+  if (key === 'quick' || key === 'heavy') {
+    lunge('player');
+    if (window.Battle3D) Battle3D.attack('player', key === 'heavy');
+    const mult = key === 'quick'
+      ? (hasPerk('quick2') ? 0.85 : 0.7)
+      : (hasPerk('heavy2') ? 2.0 : 1.7);
+    const hitBonus = key === 'quick' ? 10 : -10;
+    let hitChance = 75 + (totalStat('ugyesseg') - en.ugyesseg) * 2 + hitBonus;
+    hitChance = Math.max(40, Math.min(95, hitChance));
+    if (key === 'quick') c.playerEnergy = Math.min(100, c.playerEnergy + 15);
+
+    if (Math.random() * 100 < hitChance) {
+      let dmg = rollPlayerDamage(mult);
+      const critChance = 5 + totalStat('reflex') + (hasPerk('crit2') ? 8 : 0);
+      const crit = Math.random() * 100 < critChance;
+      if (crit) dmg = Math.round(dmg * 1.8);
+      if (enemyGuards && key !== 'heavy') dmg = Math.round(dmg * 0.4);
+      dmg = Math.max(1, dmg - en.armor);
+      en.hp -= dmg;
+      fx('enemy', '-' + dmg, crit ? 'crit' : '');
+      log(`Te: ${a.name} — <b>${dmg}</b> sebzés${crit ? ' 💥 KRITIKUS!' : ''}${enemyGuards && key !== 'heavy' ? ' (blokkolta)' : ''}${enemyGuards && key === 'heavy' ? ' — ÁTTÖRTE A VÉDEKEZÉST!' : ''}`, 'lp');
+    } else {
+      fx('enemy', 'KITÉRT', 'miss');
+      log(`Te: ${a.name} — az ellenfél kitért! (${Math.round(hitChance)}% esélyed volt)`, 'lp');
+    }
+    if (key === 'quick' && !en.stunned && c.intent === 'hack') {
+      c.intent = 'quick';
+      log('⚡ A gyors csapásod megszakította az ellenfél varázslását!', 'lg');
+    }
+  }
+  else if (key === 'guard') {
+    c.playerGuarding = true;
+    c.playerEnergy = Math.min(100, c.playerEnergy + 25);
+    if (window.Battle3D) Battle3D.guard('player');
+    log('Te: védekező állás. (+25 energia)', 'lp');
+  }
+  else if (key === 'hack') {
+    const chance = Math.min(90, 35 + totalStat('technika') * 5 + (hasPerk('hack2') ? 10 : 0));
+    if (Math.random() * 100 < chance) {
+      en.stunned = true;
+      fx('enemy', '💫 STUN', 'miss');
+      if (window.Battle3D) Battle3D.stun('enemy');
+      log(`Te: Rontás sikeres! (${Math.round(chance)}%) — ${en.name} megdermed a rontástól!`, 'lg');
+    } else {
+      log(`Te: a rontás MEGHIÚSULT. (${Math.round(chance)}% esély volt)`, 'lp');
+    }
+  }
+  else if (key === 'stim') {
+    c.stimsLeft--;
+    const heal = Math.round(maxHp() * 0.3);
+    state.hp = Math.min(maxHp(), state.hp + heal);
+    fx('player', '+' + heal, 'heal');
+    log(`Te: Gyógyital 🧪 +${heal} életerő.`, 'lgr');
+  }
+
+  if (en.hp <= 0) { endCombat(true); return; }
+  enemyTurn();
+}
+
+function enemyTurn() {
+  const c = combat;
+  const en = c.enemy;
+
+  if (en.stunned) {
+    en.stunned = false;
+    log(en.name + ' bénultan tántorog — kimarad a köre!', 'le');
+  } else {
+    const move = c.intent;
+    if (move === 'guard') {
+      if (window.Battle3D) Battle3D.guard('enemy');
+      log(en.name + ' védekezett ebben a körben.', 'le');
+    } else if (move === 'hack') {
+      const chance = 30 + c.enemy.tier * 8;
+      if (Math.random() * 100 < chance && !c.playerGuarding) {
+        c.playerStunned = true;
+        fx('player', '📡 HACKELVE', 'miss');
+        if (window.Battle3D) Battle3D.stun('player');
+        log(en.name + ' MEGÁTKOZOTT! A következő köröd kimarad... 🔮', 'le');
+      } else {
+        log(en.name + ' rontása megtört az akaraterődön.', 'le');
+      }
+    } else {
+      lunge('enemy');
+      if (window.Battle3D) Battle3D.attack('enemy', move === 'heavy');
+      const mult = move === 'heavy' ? 1.7 : 0.8;
+      let hitChance = 72 + (en.ugyesseg - totalStat('ugyesseg')) * 2;
+      hitChance = Math.max(35, Math.min(95, hitChance));
+      if (Math.random() * 100 < hitChance) {
+        let dmg = Math.round((en.dmgMin + Math.random() * (en.dmgMax - en.dmgMin)) * mult);
+        if (c.playerGuarding) {
+          const g2 = hasPerk('guard2');
+          dmg = Math.round(dmg * (move === 'heavy' ? (g2 ? 0.12 : 0.2) : (g2 ? 0.25 : 0.4)));
+          dmg = Math.max(1, dmg - armorVal());
+          state.hp -= dmg;
+          fx('player', '-' + dmg);
+          log(en.name + ' támad — de blokkoltad! Csak ' + dmg + ' sebzés.', 'le');
+          if (move === 'heavy') {
+            const counter = rollPlayerDamage(hasPerk('guard2') ? 1.1 : 0.8);
+            const cdmg = Math.max(1, counter - en.armor);
+            en.hp -= cdmg;
+            fx('enemy', '-' + cdmg);
+            log('🗡 VISSZATÁMADÁS! ' + cdmg + ' sebzést vittél be!', 'lg');
+          }
+        } else {
+          dmg = Math.max(1, dmg - armorVal());
+          state.hp -= dmg;
+          fx('player', '-' + dmg);
+          log(en.name + ': ' + (move === 'heavy' ? 'ERŐS CSAPÁS' : 'gyors támadás') + ' — <b>' + dmg + '</b> sebzés!', 'le');
+        }
+      } else {
+        fx('player', 'KITÉRTÉL', 'miss');
+        log(en.name + ' támadott, de kitértél!', 'le');
+      }
+    }
+  }
+
+  if (state.hp <= 0) { state.hp = 0; endCombat(false); return; }
+  if (en.hp <= 0) { endCombat(true); return; }
+
+  c.intent = pickEnemyIntent(en);
+  c.turn++;
+
+  if (c.playerStunned) {
+    c.playerStunned = false;
+    renderCombat();
+    log('— Bénult vagy, a köröd kimarad! —', 'lg');
+    setTimeout(() => { if (combat && !combat.over) enemyTurn(); }, 700);
+    return;
+  }
+  renderCombat();
+}
+
+function gainXp(x) {
+  state.xp += x;
+  let msg = '';
+  while (state.xp >= xpNeeded(state.level)) {
+    state.xp -= xpNeeded(state.level);
+    state.level++;
+    state.statPoints += 3;
+    state.hp = maxHp();
+    msg += `<div style="color:var(--neon)">⬆ SZINTLÉPÉS! Most ${state.level}. szintű vagy (+3 stat pont)</div>`;
+    const perk = PERKS.find(p => p.lvl === state.level);
+    if (perk) msg += `<div style="color:var(--purple)">🔓 Új képesség: <b>${perk.name}</b> — ${perk.desc}</div>`;
+  }
+  return msg;
+}
+
+function addLoot(item) {
+  if (state.inventory.length >= 15) {
+    const gold = Math.floor(item.price / 2);
+    state.credits += gold;
+    return `<div style="color:var(--dim)">📦 ${coloredName(item)} — tele a táskád, eladva +${gold}🪙</div>`;
+  }
+  state.inventory.push(item);
+  return `<div>📦 Zsákmány: <b>${coloredName(item)}</b> <span style="color:${rarityColor(item)}">(${rarityName(item)})</span></div>`;
+}
+
+function endCombat(won) {
+  const c = combat;
+  c.over = true;
+  if (window.Battle3D) Battle3D.death(won ? 'enemy' : 'player');
+  const isPvp = c.pvpRivalIdx !== null || c.onlinePvp;
+  const box = $('resultBox');
+  if (won) {
+    state.wins++;
+    const xpGain = c.enemy.xp, crGain = c.enemy.credits, fameGain = c.enemy.fame || 0;
+    state.credits += crGain;
+    state.fame += fameGain;
+    if (c.pvpRivalIdx !== null) {
+      const r = state.rivals[c.pvpRivalIdx];
+      r.fame = Math.max(0, r.fame - Math.round(fameGain * 0.7));
+    }
+    const lvlMsg = gainXp(xpGain);
+    let dropMsg = '';
+    if (!isPvp) {
+      if (c.enemy.boss) {
+        state.bossKills[c.locId || 'rust'] = (state.bossKills[c.locId || 'rust'] || 0) + 1;
+        dropMsg = addLoot(genItem(state.level + 1, null, 2));   // boss: garantált ritka+
+      } else if (Math.random() < 0.14 * c.enemy.tier) {
+        dropMsg = addLoot(genItem(state.level));
+      }
+    }
+    // napi első győzelem
+    const today = new Date().toDateString();
+    if (state.lastDaily !== today) {
+      state.lastDaily = today;
+      const dailyGold = 50 + state.level * 10;
+      state.credits += dailyGold;
+      dropMsg += `<div style="color:var(--gold)">☀️ Napi első győzelem: +${dailyGold}🪙</div>`;
+    }
+    box.classList.remove('lost');
+    $('resultTitle').textContent = '🏆 GYŐZELEM';
+    $('resultTitle').style.color = 'var(--gold)';
+    $('resultTitle').style.textShadow = '0 0 20px rgba(255,210,77,.8)';
+    $('resultRewards').innerHTML =
+      `<div>+ ${crGain} 🪙 arany</div><div>+ ${xpGain} XP</div><div style="color:var(--purple)">+ ${fameGain} ⭐ hírnév</div>${lvlMsg}${dropMsg}`;
+  } else {
+    state.losses++;
+    const loss = Math.min(state.credits, Math.round(c.enemy.credits * 0.5));
+    state.credits -= loss;
+    let fameMsg = '';
+    if (isPvp) {
+      const fameLoss = Math.min(state.fame, 8);
+      state.fame -= fameLoss;
+      fameMsg = `<div style="color:var(--purple)">- ${fameLoss} ⭐ hírnév</div>`;
+      if (c.pvpRivalIdx !== null) state.rivals[c.pvpRivalIdx].fame += 10;
+    }
+    state.hp = Math.max(1, Math.round(maxHp() * 0.1));
+    box.classList.add('lost');
+    $('resultTitle').textContent = '💀 VERESÉG';
+    $('resultTitle').style.color = 'var(--neon2)';
+    $('resultTitle').style.textShadow = '0 0 20px rgba(216,68,46,.8)';
+    $('resultRewards').innerHTML =
+      `<div>A medikusok kihúztak az arénából...</div><div>- ${loss} 🪙 arany</div>${fameMsg}`;
+  }
+  save();
+  if (window.Online) Online.pushProfile(state);
+  renderCombat();
+  $('resultOverlay').classList.add('show');
+}
+
+/* ============================================================
+   JÁTÉKOS-MŰVELETEK
+============================================================ */
+window.game = {
+  spendPoint(stat) {
+    if (state.statPoints <= 0) return;
+    state.statPoints--;
+    state.stats[stat]++;
+    if (stat === 'kitartas') state.hp = Math.min(maxHp(), state.hp + 9);
+    save(); renderCharacter();
+  },
+  selectInv(idx) {
+    selectedInv = selectedInv === idx ? -1 : idx;
+    renderBag();
+  },
+  equip(invIdx) {
+    const it = state.inventory[invIdx];
+    if (!it) return;
+    state.inventory.splice(invIdx, 1);
+    const old = state.equipment[it.slot];
+    if (old && old.uid !== 'starter') state.inventory.push(old);
+    state.equipment[it.slot] = it;
+    state.hp = Math.min(state.hp, maxHp());
+    selectedInv = -1;
+    save(); renderCharacter();
+    toast(it.name + ' felszerelve.');
+  },
+  unequip(slot) {
+    const it = state.equipment[slot];
+    if (!it || it.uid === 'starter') return;
+    if (state.inventory.length >= 15) { toast('Tele a táskád!'); return; }
+    state.equipment[slot] = slot === 'weapon' ? starterWeapon() : null;
+    state.inventory.push(it);
+    state.hp = Math.min(state.hp, maxHp());
+    save(); renderCharacter();
+  },
+  sell(invIdx) {
+    const it = state.inventory[invIdx];
+    if (!it) return;
+    state.inventory.splice(invIdx, 1);
+    state.credits += Math.floor(it.price / 2);
+    selectedInv = -1;
+    save(); renderCharacter();
+    toast(it.name + ' eladva +' + Math.floor(it.price / 2) + '🪙');
+  },
+  buy(stockIdx) {
+    const it = state.shopStock[stockIdx];
+    if (!it || state.credits < it.price) return;
+    if (state.inventory.length >= 15) { toast('Tele a táskád!'); return; }
+    state.credits -= it.price;
+    state.shopStock.splice(stockIdx, 1);
+    state.inventory.push(it);
+    save(); renderShop(); renderHeader();
+    toast(it.name + ' megvéve! A karakterlapon tudod felvenni.');
+  },
+  restock() {
+    if (state.credits < 25) return;
+    state.credits -= 25;
+    ensureShopStock(true);
+    save(); renderShop(); renderHeader();
+    toast('Friss áru érkezett a Piactérre!');
+  },
+  train(stat) {
+    const cost = trainCost(stat);
+    if (state.credits < cost) return;
+    state.credits -= cost;
+    state.stats[stat]++;
+    state.trained[stat] = (state.trained[stat] || 0) + 1;
+    save(); renderTraining();
+    toast(STAT_DEFS[stat].name + ' +1!');
+  },
+  claimGoal(id) {
+    const g = GOALS.find(x => x.id === id);
+    if (!g || state.claimed.includes(id) || !g.check(state)) return;
+    state.claimed.push(id);
+    state.credits += g.gold;
+    let msg = g.gold + '🪙 átvéve!';
+    if (g.legendary) {
+      const item = genItem(state.level + 2, null, 4);
+      addLoot(item);
+      msg += ' + ' + item.name + ' (Legendás)!';
+      toast('👑 A BAJNOKOK BAJNOKA LETTÉL!');
+    }
+    save(); renderGoals(); renderHeader();
+    if (!g.legendary) toast('🎁 ' + msg);
+  },
+  selectCreateSkin(id) {
+    createSkinSel = id;
+    renderCreateSkins();
+  },
+  confirmCreate() {
+    const nm = ($('createName').value || '').trim();
+    state.name = nm.length >= 3 ? nm.slice(0, 16) : 'Bajnok_' + Math.floor(Math.random() * 900 + 100);
+    state.skin = createSkinSel;
+    state.created = true;
+    save();
+    $('createOverlay').classList.remove('show');
+    switchScreen('overview');
+    toast('⚔️ Sok szerencsét a porondon, ' + state.name + '!');
+  },
+  selectSkin(id) {
+    if (window.Battle3D && !Battle3D.SKINS.find(s => s.id === id)) return;
+    state.skin = id;
+    save();
+    renderCharacter();
+    toast('Karakter-váz: ' + id.toUpperCase());
+  },
+  selectLocation(id) {
+    const l = LOCATIONS.find(x => x.id === id);
+    if (!l || state.level < l.minLevel) return;
+    state.location = id;
+    save();
+    renderOpponents();
+  },
+  healUp() {
+    const cost = Math.max(10, Math.floor((maxHp() - state.hp) * 0.8));
+    if (state.credits < cost || state.hp >= maxHp()) return;
+    state.credits -= cost;
+    state.hp = maxHp();
+    save(); renderTraining();
+    toast('Életerő feltöltve!');
+  },
+  startCombat, startBossCombat, playerAction, challengeRival, challengeOnline,
+  startExpedition(typeId) {
+    if (state.expedition) { toast('Már úton van egy portyád!'); return; }
+    const e = EXPEDITIONS.find(x => x.id === typeId);
+    if (!e) return;
+    state.expedition = { type: typeId, locId: state.location || 'rust', end: Date.now() + e.mins * 60000 };
+    save(); renderQuests();
+    toast('A portya elindult! ' + e.mins + ' perc múlva térnek vissza.');
+  },
+  claimExpedition() {
+    const ex = state.expedition;
+    if (!ex || Date.now() < ex.end) return;
+    const e = EXPEDITIONS.find(x => x.id === ex.type) || EXPEDITIONS[0];
+    const loc = LOCATIONS.find(l => l.id === ex.locId) || LOCATIONS[0];
+    const L = state.level;
+    const gold = Math.round((30 + L * 12) * e.gold * loc.rewardMult);
+    const xp = Math.round((20 + L * 8) * e.xp * loc.rewardMult);
+    state.credits += gold;
+    state.fame += Math.round(3 * e.gold * loc.rewardMult);
+    const lvlMsg = gainXp(xp);
+    let dropMsg = '';
+    if (Math.random() < e.drop) dropMsg = addLoot(genItem(L, null, e.minRarity || 0));
+    state.expedition = null;
+    save();
+    const box = $('resultBox');
+    box.classList.remove('lost');
+    $('resultTitle').textContent = '🗺️ PORTYA VÉGE';
+    $('resultTitle').style.color = 'var(--gold)';
+    $('resultTitle').style.textShadow = '0 0 20px rgba(255,210,77,.8)';
+    $('resultRewards').innerHTML =
+      `<div>${e.name} — ${loc.name}</div><div>+ ${gold} 🪙 arany</div><div>+ ${xp} XP</div>${lvlMsg}${dropMsg}`;
+    $('resultOverlay').classList.add('show');
+    renderQuests();
+  },
+  closeResult() {
+    $('resultOverlay').classList.remove('show');
+    if (window.Battle3D) Battle3D.stop();
+    const wasPvp = combat && combat.pvpRivalIdx !== null;
+    combat = null;
+    $('opponentSelect').style.display = 'block';
+    $('combatView').style.display = 'none';
+    switchScreen(wasPvp ? 'ranking' : 'overview');
+  },
+  reset() {
+    if (!confirm('Biztos új karaktert kezdesz? A jelenlegi minden fejlődése elveszik!')) return;
+    localStorage.removeItem(SAVE_KEY);
+    state = defaultState();
+    state.hp = maxHp();
+    save();
+    combat = null;
+    selectedInv = -1;
+    switchScreen('overview');
+    showCreate();
+  },
+};
+
+/* ============================================================
+   INDÍTÁS
+============================================================ */
+window.switchScreen = switchScreen;
+document.querySelectorAll('.menu-btn[data-screen]').forEach(b => {
+  b.addEventListener('click', () => switchScreen(b.dataset.screen));
+});
+
+/* Kártyák — egérkövető 3D billentés */
+document.addEventListener('mousemove', e => {
+  const card = e.target.closest && e.target.closest('.card');
+  if (!card) return;
+  const r = card.getBoundingClientRect();
+  const nx = (e.clientX - r.left) / r.width - 0.5;
+  const ny = (e.clientY - r.top) / r.height - 0.5;
+  card.style.transform = `translateZ(20px) rotateX(${(-ny * 9).toFixed(2)}deg) rotateY(${(nx * 12).toFixed(2)}deg)`;
+});
+document.addEventListener('mouseout', e => {
+  const card = e.target.closest && e.target.closest('.card');
+  if (card && !(e.relatedTarget && card.contains(e.relatedTarget))) card.style.transform = '';
+});
+
+/* 3D város — egér-parallax kamera */
+(function () {
+  const c3 = document.getElementById('city3d');
+  const world = document.getElementById('c3World');
+  if (!c3 || !world) return;
+  c3.addEventListener('mousemove', e => {
+    const r = c3.getBoundingClientRect();
+    const nx = (e.clientX - r.left) / r.width - 0.5;
+    const ny = (e.clientY - r.top) / r.height - 0.5;
+    world.style.setProperty('--rz', (45 + nx * 14) + 'deg');
+    world.style.setProperty('--rx', (58 - ny * 10) + 'deg');
+  });
+  c3.addEventListener('mouseleave', () => {
+    world.style.setProperty('--rz', '45deg');
+    world.style.setProperty('--rx', '58deg');
+  });
+})();
+
+load();
+if (!state.hp) state.hp = maxHp();
+ensureRivals();
+tickRivals();
+save();
+renderOverview();
+if (!state.created) showCreate();
+
+/* online kapcsolat (ha van kulcs) — kis késleltetéssel, hogy a defer-szkriptek betöltsenek */
+setTimeout(() => {
+  if (window.Online && Online.hasKey && Online.hasKey()) {
+    Online.init().then(ok => { if (ok) Online.pushProfile(state); });
+  }
+}, 800);
+
+/* file:// módban a böngésző nem engedi betölteni a 3D modelleket — figyelmeztetés */
+if (location.protocol === 'file:') {
+  const warn = document.createElement('div');
+  warn.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999;background:#7a1e12;color:#ffe8c8;' +
+    'padding:12px 18px;text-align:center;font-family:sans-serif;font-size:14px;box-shadow:0 4px 20px rgba(0,0,0,.6)';
+  warn.innerHTML = '⚠️ <b>Így megnyitva a 3D karakterek nem töltenek be!</b> ' +
+    'Indítsd a játékot a mappában lévő <b>JATEK_INDITASA.bat</b> fájllal (dupla katt) — részletek az OLVASS_EL.txt-ben.';
+  document.body.appendChild(warn);
+}
+</script>
+</body>
+</html>
