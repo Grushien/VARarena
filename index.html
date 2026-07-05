@@ -1128,8 +1128,12 @@
             <div class="card-list" id="shopList"></div>
           </div>
           <div id="playerPane" style="display:none">
-            <div class="sub">Add el a fölösleges zsákmányod más bajnokoknak, vagy vegyél tőlük olcsóbban!
+            <div class="sub">Válassz tárgyat a táskádból, árazd be, és tedd ki a piacra!
               <button class="act" style="margin-left:8px;font-size:9px;padding:4px 10px" onclick="renderPlayerMarket()">🔄 FRISSÍTÉS</button></div>
+            <div class="char-layout" style="margin-bottom:16px">
+              <div class="doll-board"><h3>// ELADÁSRA</h3><div id="marketStageBox"></div></div>
+              <div class="bag-board"><h3>// A TÁSKÁD</h3><div class="bag-grid" id="marketInvGrid"></div></div>
+            </div>
             <div id="myListings" style="margin-bottom:12px"></div>
             <div id="playerMarket"></div>
           </div>
@@ -1833,11 +1837,17 @@ async function renderClan() {
       </div>` : ''}
     </div>
     <div class="divider"></div>
+    <h3 style="font-size:11px;letter-spacing:3px;color:var(--neon2);margin-bottom:10px;text-align:center">// ELADÁS A KLÁN-PIACON</h3>
+    <div class="char-layout" style="margin-bottom:16px">
+      <div class="doll-board"><h3>// ELADÁSRA</h3><div id="clanStageBox"></div></div>
+      <div class="bag-board"><h3>// A TÁSKÁD</h3><div class="bag-grid" id="clanInvGrid"></div></div>
+    </div>
     <h3 style="font-size:11px;letter-spacing:3px;color:var(--neon2);margin-bottom:10px;text-align:center">// KLÁN-PIAC
       <button class="act" style="font-size:9px;padding:3px 8px;margin-left:8px" onclick="renderClanMarket('${clan.id}')">🔄</button></h3>
     <div class="card-list" id="clanMarketList"></div>
     <div class="divider"></div>
     <button class="act pink" onclick="game.leaveClanUi()">KILÉPÉS A KLÁNBÓL</button>`;
+  renderStageAndInv('clanStageBox', 'clanInvGrid', clan.id);
   renderClanMarket(clan.id);
 }
 
@@ -1864,10 +1874,41 @@ async function renderClanMarket(clanId) {
 /* ============================================================
    JÁTÉKOS-PIAC (a Piactér al-fülén)
 ============================================================ */
+let marketStageIdx = -1;
+function renderStageAndInv(stageId, invId, clanId) {
+  const invHost = $(invId);
+  if (invHost) {
+    invHost.innerHTML = state.inventory.length ? state.inventory.map((it, i) => `
+      <div class="bag-cell ${rarityClass(it)} ${marketStageIdx === i ? 'sel' : ''}" title="${it.name}"
+        onclick="game.pickForMarket(${i}, '${stageId}', '${invId}', ${clanId ? `'${clanId}'` : 'null'})">${canSnap() ? snapImg(SLOT_MODEL[it.slot], 'snap-cell', 0.55) : it.icon}</div>
+    `).join('') : '<div class="c-sub" style="grid-column:1/-1;text-align:center;padding:10px">Üres a táskád.</div>';
+    fillSnaps();
+  }
+  const stageHost = $(stageId);
+  if (!stageHost) return;
+  const it = marketStageIdx >= 0 ? state.inventory[marketStageIdx] : null;
+  if (!it) {
+    stageHost.innerHTML = '<div class="c-sub" style="text-align:center;padding:24px 6px">Válassz egy tárgyat a táskádból! →</div>';
+    return;
+  }
+  stageHost.innerHTML = `
+    ${canSnap() ? snapImg(SLOT_MODEL[it.slot], 'snap-item', 0.55) : ''}
+    <div class="id-name" style="color:${rarityColor(it)};text-align:center">${it.name}</div>
+    <div class="id-desc" style="text-align:center">${itemDesc(it)}</div>
+    <input id="${stageId}Price" type="number" min="1" placeholder="Ár (arany)" value="${Math.max(1, Math.round(it.price * 0.9))}"
+      style="width:100%;margin:8px 0;background:rgba(0,0,0,.5);border:1px solid var(--border);color:var(--text);padding:8px;text-align:center">
+    <div style="display:flex;gap:6px">
+      <button class="act gold" style="flex:1" onclick="game.confirmListing('${stageId}', '${invId}', ${clanId ? `'${clanId}'` : 'null'})">${clanId ? 'KLÁN-PIACRA' : 'PIACRA TESZEM'}</button>
+      <button class="act pink" onclick="game.cancelStage('${stageId}', '${invId}', ${clanId ? `'${clanId}'` : 'null'})">MÉGSE</button>
+    </div>`;
+  fillSnaps();
+}
+
 let shopActiveTab = 'vendor';
 let lastMarketListings = [];
 let lastMarketListingsAll = [];
 async function renderPlayerMarket() {
+  renderStageAndInv('marketStageBox', 'marketInvGrid', null);
   if (!window.Online || !Online.isReady()) {
     $('myListings').innerHTML = '';
     $('playerMarket').innerHTML = '<div class="c-sub" style="text-align:center;color:var(--red)">Nincs online kapcsolat — a játékos-piachoz internet szükséges.</div>';
@@ -1876,7 +1917,7 @@ async function renderPlayerMarket() {
   $('playerMarket').innerHTML = '<div class="c-sub" style="text-align:center">Betöltés...</div>';
   const [mine, listings] = await Promise.all([Online.myListings(), Online.marketList(null)]);
   if (!$('screen-shop').classList.contains('active') || shopActiveTab !== 'player') return;
-  $('myListings').innerHTML = '<div class="c-sub" style="margin-bottom:10px">Eladni a <b style="color:var(--gold)">Karakter</b> oldalon tudsz: nyisd meg a táskádat, válassz tárgyat, és nyomd meg a <b style="color:#5aa0e8">PIACRA</b> gombot!</div>' +
+  $('myListings').innerHTML =
     (mine.length ? '<div class="c-title" style="margin-bottom:6px">SAJÁT HIRDETÉSEID</div>' +
     mine.map(l => `<div class="goal-row"><div class="goal-ico">${l.item.icon || '📦'}</div>
       <div style="flex:1"><div class="goal-name">${l.item.name}</div><div class="goal-desc">${l.sold ? 'ELADVA' : l.price + '🪙'}</div></div>
@@ -2071,8 +2112,8 @@ function renderBag() {
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         <button class="act" onclick="game.equip(${selectedInv})">FELVESZ</button>
         <button class="act gold" onclick="game.sell(${selectedInv})">ELAD ${Math.floor(it.price/2)}🪙</button>
-        <button class="act" style="border-color:#5aa0e8;color:#5aa0e8" onclick="game.listOnMarketUi(${selectedInv})">PIACRA</button>
-      </div>`;
+      </div>
+      <div class="c-sub" style="margin-top:8px;font-size:11px">💡 Más bajnokoknak a <b style="color:#5aa0e8">Piactér</b> vagy a <b style="color:#5aa0e8">Klán</b> oldalon adhatod el.</div>`;
   } else {
     $('itemDetail').innerHTML = `<div style="color:#566;font-style:italic;text-align:center;padding-top:26px">
       ${state.inventory.length ? 'Kattints egy tárgyra a részletekhez!' : 'A táskád üres — nézz szét a Piactéren!'}</div>`;
@@ -2914,23 +2955,30 @@ window.game = {
     $('playerPane').style.display = tab === 'player' ? 'block' : 'none';
     if (tab === 'player') renderPlayerMarket();
   },
-  async listOnMarketUi(invIdx) {
+  pickForMarket(idx, stageId, invId, clanId) {
+    marketStageIdx = idx;
+    renderStageAndInv(stageId, invId, clanId);
+  },
+  cancelStage(stageId, invId, clanId) {
+    marketStageIdx = -1;
+    renderStageAndInv(stageId, invId, clanId);
+  },
+  async confirmListing(stageId, invId, clanId) {
     if (!window.Online || !Online.isReady()) { toast('Nincs online kapcsolat!'); return; }
-    const it = state.inventory[invIdx];
+    if (marketStageIdx < 0) return;
+    const it = state.inventory[marketStageIdx];
     if (!it) return;
-    const suggested = Math.max(1, Math.round(it.price * 0.9));
-    const priceStr = prompt('Mennyiért add el?\n(' + it.name + ')', suggested);
-    if (priceStr === null) return;
-    const price = Math.max(1, parseInt(priceStr, 10) || 0);
-    if (!price) { toast('Érvénytelen ár.'); return; }
-    let clanTarget = null;
-    if (state.clanId && confirm('A klán-piacra teszed ki? OK = klán-piac, Mégse = nyilvános piac.')) clanTarget = state.clanId;
-    const ok = await Online.createListing(it, price, clanTarget);
+    const priceInput = $(stageId + 'Price');
+    const price = Math.max(1, parseInt(priceInput.value, 10) || 0);
+    if (!price) { toast('Adj meg egy érvényes árat!'); return; }
+    const ok = await Online.createListing(it, price, clanId);
     if (!ok) { toast('Nem sikerült piacra tenni.'); return; }
-    state.inventory.splice(invIdx, 1);
-    selectedInv = -1;
-    save(); renderCharacter();
-    toast('📦 Piacra téve ' + price + '🪙-ért' + (clanTarget ? ' (klán-piac)!' : '!'));
+    state.inventory.splice(marketStageIdx, 1);
+    marketStageIdx = -1;
+    save();
+    toast('📦 Piacra téve ' + price + '🪙-ért!' + (clanId ? ' (klán-piac)' : ''));
+    renderStageAndInv(stageId, invId, clanId);
+    if (clanId) renderClanMarket(clanId); else renderPlayerMarket();
   },
   filterMarket() { renderMarketCards(); },
   async buyMarketUi(id) {
@@ -3166,10 +3214,29 @@ setTimeout(() => {
       if (ok) {
         Online.pushProfile(state);
         if (state.clanId) Online.getMyClan(state.clanId).then(c => { if (c) clanLevelCache = c.level || 1; });
+        checkMailNotifications();
+        setInterval(checkMailNotifications, 40000);
       }
     });
   }
 }, 800);
+
+/* értesítés, ha eladtál valamit a piacon (vagy más levelet kaptál) */
+const notifiedMailIds = new Set();
+async function checkMailNotifications() {
+  if (!window.Online || !Online.isReady()) return;
+  const mails = await Online.inbox();
+  const unread = mails.filter(m => !m.read);
+  const badge = $('mailBadge');
+  if (badge) { badge.style.display = unread.length ? 'inline-block' : 'none'; badge.textContent = unread.length; }
+  for (const m of unread) {
+    if (!notifiedMailIds.has(m.id)) {
+      notifiedMailIds.add(m.id);
+      toast((m.kind === 'trade' ? '💰 ' : '✉️ ') + m.body);
+      if (window.Sfx) Sfx.coin();
+    }
+  }
+}
 
 /* file:// módban a böngésző nem engedi betölteni a 3D modelleket — figyelmeztetés */
 if (location.protocol === 'file:') {

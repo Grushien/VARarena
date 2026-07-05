@@ -329,6 +329,12 @@ window.I18N = (function () {
     'FRISSÍTÉS': 'REFRESH', 'Frissítés...': 'Refreshing...',
     'Ez a hirdetés már nem elérhető.': 'This listing is no longer available.',
     'Nincs elég aranyad! (': 'Not enough gold! (', ' kell)': ' needed)',
+    'Válassz tárgyat a táskádból, árazd be, és tedd ki a piacra!': 'Pick an item from your bag, set a price, and list it!',
+    '// ELADÁSRA': '// FOR SALE', '// A TÁSKÁD': '// YOUR BAG', '// ELADÁS A KLÁN-PIACON': '// SELL ON THE CLAN MARKET',
+    'Válassz egy tárgyat a táskádból! →': 'Pick an item from your bag! →',
+    'Ár (arany)': 'Price (gold)', 'PIACRA TESZEM': 'LIST IT', 'MÉGSE': 'CANCEL',
+    'Üres a táskád.': 'Your bag is empty.',
+    'Más bajnokoknak a ': 'To sell to other champions, use the ', ' vagy a ': ' or the ', ' oldalon adhatod el.': ' screen.',
   };
 
   const keys = Object.keys(DICT).sort((a, b) => b.length - a.length);
