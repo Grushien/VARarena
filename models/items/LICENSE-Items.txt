@@ -1,0 +1,13 @@
+Tárgy-modellek forrása (poly.pizza):
+
+CC0 (közkincs, szabad felhasználás):
+- sword.glb   — "Sword" by Quaternius        (poly.pizza/m/9lLmH8Et4K)
+- shield.glb  — "Shield" by Quaternius       (poly.pizza/m/srN1KGAO7f)
+- armor.glb   — "Armor Metal" by Quaternius  (poly.pizza/m/TMUoxILh9w)
+- cloak.glb   — "Armor Leather" by Quaternius(poly.pizza/m/na9KfWiKN8)
+- potion.glb  — "Potion Bottle" by Quaternius(poly.pizza/m/7qbuf1TS8C)
+- boots.glb   — "Boots" by Isa Lousberg      (poly.pizza/m/7XCvej7wZU)
+- amulet.glb  — "Ring" by Zsky               (poly.pizza/m/Q5aumgYVBE)
+
+CC-BY (névmegjelölés szükséges — lásd credits a játékban/leírásban):
+- helmet.glb  — "Viking Helmet" by Michael Fuchs (poly.pizza/m/apPuLbVJ4N5)

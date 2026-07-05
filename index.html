@@ -11,6 +11,9 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js" defer></script>
 <script src="js/battle3d.js?v=6" defer></script>
+<script src="js/city3d.js?v=2" defer></script>
+<script src="js/modelsnap.js?v=1" defer></script>
+<script src="js/sfx.js?v=1" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
 <script src="js/online.js?v=1" defer></script>
 <style>
@@ -218,6 +221,27 @@
   /* ================================================================
      3D VÁROS (CSS 3D izometrikus)
   ================================================================ */
+  .city-stage-wrap { position: relative; width: 100%; }
+  #cityStage {
+    height: min(58vh, 560px); position: relative; overflow: hidden;
+    border: 1px solid var(--border); cursor: grab;
+    background: linear-gradient(180deg, #120c1e 0%, #0c0812 55%, #1a0f0a 100%);
+    clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 14px, 100% calc(100% - 14px), calc(100% - 14px) 100%, 14px 100%, 0 calc(100% - 14px), 0 14px);
+  }
+  #cityStage:active { cursor: grabbing; }
+  #cityStage canvas { display: block; }
+  #cityLabels { position: absolute; inset: 0; pointer-events: none; }
+  .city3d-label {
+    position: absolute; transform: translate(-50%, -100%); pointer-events: auto; cursor: pointer;
+    text-align: center; white-space: nowrap; transition: transform .12s;
+    background: rgba(8,5,3,.72); border: 1px solid var(--border); padding: 3px 10px;
+    clip-path: polygon(7px 0, calc(100% - 7px) 0, 100% 50%, calc(100% - 7px) 100%, 7px 100%, 0 50%);
+  }
+  .city3d-label b { font-family: var(--f-head); font-size: 12px; letter-spacing: 1px; display: block; }
+  .city3d-label small { font-size: 11px; color: var(--dim); }
+  .city3d-label.hot { transform: translate(-50%, -108%) scale(1.08); border-color: var(--gold); box-shadow: 0 0 14px -4px var(--gold); }
+  @media (max-width: 760px) { #cityStage { height: 44vh; } }
+
   .city3d {
     position: relative; height: min(62vh, 660px); overflow: hidden;
     background:
@@ -749,6 +773,19 @@
   table.rank .fame-cell { color: var(--purple); }
   table.rank .top1 { color: var(--gold); font-weight: bold; }
 
+  /* 3D előnézeti képek (ModelSnap) */
+  .snap-img { opacity: 0; transition: opacity .35s; pointer-events: none; }
+  .snap-img.loaded { opacity: 1; }
+  .snap-item { width: 72px; height: 72px; display: block; margin: 0 auto 2px; object-fit: contain; filter: drop-shadow(0 4px 8px rgba(0,0,0,.55)); }
+  .snap-cell { width: 88%; height: 88%; object-fit: contain; }
+  .snap-slot { width: 36px; height: 36px; object-fit: contain; display: inline-block; }
+  .snap-opp { width: 96px; height: 96px; display: block; margin: 0 auto; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0,0,0,.6)); }
+  .snap-boss { width: 130px; height: 130px; display: block; margin: 0 auto; object-fit: contain; filter: drop-shadow(0 0 14px rgba(216,68,46,.55)); }
+  .snap-mini { width: 30px; height: 30px; object-fit: contain; vertical-align: middle; margin-right: 6px; display: inline-block; }
+  .snap-quest { width: 110px; height: 84px; object-fit: contain; display: block; margin: 0 auto; filter: drop-shadow(0 4px 8px rgba(0,0,0,.5)); }
+  .snap-detail { width: 42px; height: 42px; object-fit: contain; vertical-align: middle; margin-right: 6px; display: inline-block; }
+  .snap-potion { width: 58px; height: 58px; object-fit: contain; }
+
   .toast {
     position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
     background: rgba(10,10,22,.95); border: 1px solid var(--neon); color: var(--neon);
@@ -809,6 +846,7 @@
     <div class="tb-chip"><span class="ico">🎖️</span><span><span class="lab">SZINT</span><b id="hdrLevel">1</b></span></div>
     <div class="tb-chip"><span class="ico">⭐</span><span><span class="lab">HÍRNÉV</span><b id="hdrFame" style="color:var(--purple)">0</b></span></div>
     <div class="tb-chip"><span class="ico">🪙</span><span><span class="lab">ARANY</span><b id="hdrCredits" style="color:var(--gold)">0</b></span></div>
+    <div class="tb-chip" style="cursor:pointer" onclick="game.toggleMute()" title="Hangok ki/be"><span class="ico" id="muteIco">🔊</span></div>
   </div>
 
   <!-- ============ MENÜ + TARTALOM ============ -->
@@ -840,8 +878,12 @@
       <div class="screen active" id="screen-overview">
         <div class="frame"><div class="corner-b"></div>
           <h2>VASVÁR</h2>
-          <div class="sub">A város a tiéd, bajnok. Kattints egy épületre!</div>
-          <div class="city3d" id="city3d">
+          <div class="sub">A város a tiéd, bajnok. Kattints egy épületre — húzd az egeret a körbenézéshez!</div>
+          <div class="city-stage-wrap">
+            <div id="cityStage"></div>
+            <div id="cityLabels"></div>
+          </div>
+          <div class="city3d" id="city3d" style="display:none">
             <div class="c3-world" id="c3World">
               <div class="c3-ground"></div>
 
@@ -1064,7 +1106,10 @@
           <div class="card-list" id="trainingList"></div>
           <div class="divider"></div>
           <div style="text-align:center">
-            <button class="act" id="healBtn" onclick="game.healUp()"></button>
+            <div style="display:flex;align-items:center;justify-content:center;gap:14px">
+              <img class="snap-img snap-potion" id="healPotImg" alt="">
+              <button class="act" id="healBtn" onclick="game.healUp()"></button>
+            </div>
           </div>
         </div>
       </div>
@@ -1280,6 +1325,27 @@ function legacyToItem(id) {
   };
 }
 const EQUIP_SLOTS = ['weapon', 'armor', 'helmet', 'boots', 'accessory', 'implant'];
+
+/* ---- 3D előnézeti képek (ModelSnap) ---- */
+const SLOT_MODEL = {
+  weapon: 'models/items/sword.glb', armor: 'models/items/armor.glb',
+  helmet: 'models/items/helmet.glb', boots: 'models/items/boots.glb',
+  accessory: 'models/items/cloak.glb', implant: 'models/items/amulet.glb',
+};
+const VARIANT_MODEL = {
+  humanoid: 'models/Skeleton_Rogue.glb', heavy: 'models/Skeleton_Warrior.glb',
+  drone: 'models/Skeleton_Mage.glb', beast: 'models/Skeleton_Minion.glb',
+};
+const SKIN_MODEL = {
+  ronin: 'models/Knight.glb', bruiser: 'models/Barbarian.glb',
+  netrunner: 'models/Mage.glb', zsoldos: 'models/Rogue_Hooded.glb',
+};
+const EXP_MODEL = { short: 'models/city/cart.glb', hunt: 'models/city/watch_tower.glb', war: 'models/city/castle.glb' };
+function canSnap() { return !!(window.ModelSnap && typeof THREE !== 'undefined' && location.protocol !== 'file:'); }
+function snapImg(url, cls, yaw) {
+  return `<img class="snap-img ${cls || ''}" data-snap="${url}"${yaw !== undefined ? ` data-yaw="${yaw}"` : ''} alt="">`;
+}
+function fillSnaps() { if (window.ModelSnap) ModelSnap.fill(document); }
 
 const LOCATIONS = [
   { id: 'rust', name: 'Sárfészek', icon: '🏚️', minLevel: 1, mult: 1.0, rewardMult: 1.0, color: '#7dc95e',
@@ -1536,6 +1602,12 @@ function fx(side, text, cls) {
   el.style.left = (25 + Math.random() * 40) + '%';
   el.style.top = (30 + Math.random() * 14) + '%';
   host.appendChild(el);
+  if (window.Sfx) {
+    if (cls === 'crit') Sfx.crit();
+    else if (cls === 'heal') Sfx.heal();
+    else if (cls === 'miss') Sfx.miss();
+    else Sfx.hit();
+  }
   if (!cls || cls === 'crit') {
     host.classList.remove('shake', 'hitflash');
     void host.offsetWidth;
@@ -1549,6 +1621,7 @@ function switchScreen(name) {
   if (combat && !combat.over) { toast('Előbb fejezd be a harcot!'); return; }
   document.querySelectorAll('.menu-btn[data-screen]').forEach(b => b.classList.toggle('active', b.dataset.screen === name));
   document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === 'screen-' + name));
+  if (window.City3D && name !== 'overview') City3D.stop();
   if (name === 'overview') renderOverview();
   if (name === 'arena' && !combat) renderOpponents();
   if (name === 'quests') renderQuests();
@@ -1626,6 +1699,7 @@ function renderHeader() {
 ============================================================ */
 function renderOverview() {
   renderHeader();
+  if (window.City3D) City3D.start();
   ensureRivals();
   const sorted = [...state.rivals, { name: state.name, fame: state.fame, me: true }]
     .sort((a, b) => b.fame - a.fame);
@@ -1656,7 +1730,7 @@ function slotHtml(slot, gridPos) {
   return `<div class="eq-slot ${it ? '' : 'empty-slot'}" style="${gridPos}"
        title="${it ? itemDesc(it) + ' — kattints a levételhez' : 'üres slot'}"
        onclick="game.unequip('${slot}')">
-    <div class="sl-icon">${it ? it.icon : m.icon}</div>
+    <div class="sl-icon">${it ? (canSnap() ? snapImg(SLOT_MODEL[slot], 'snap-slot', 0.55) : it.icon) : m.icon}</div>
     <div class="sl-label">${m.label}</div>
     <div class="sl-item" ${it ? `style="color:${rarityColor(it)}"` : ''}>${it ? it.name : '— üres —'}</div>
   </div>`;
@@ -1727,7 +1801,7 @@ function renderBag() {
     const it = state.inventory[i];
     if (it) {
       cells += `<div class="bag-cell ${rarityClass(it)} ${selectedInv === i ? 'sel' : ''}" title="${it.name} (${rarityName(it)})"
-        onclick="game.selectInv(${i})">${it.icon}</div>`;
+        onclick="game.selectInv(${i})">${canSnap() ? snapImg(SLOT_MODEL[it.slot], 'snap-cell', 0.55) : it.icon}</div>`;
     } else {
       cells += '<div class="bag-cell empty"></div>';
     }
@@ -1737,7 +1811,7 @@ function renderBag() {
   const it = selectedInv >= 0 ? state.inventory[selectedInv] : null;
   if (it) {
     $('itemDetail').innerHTML = `
-      <div class="id-name" style="color:${rarityColor(it)}">${it.icon} ${it.name}</div>
+      <div class="id-name" style="color:${rarityColor(it)}">${canSnap() ? snapImg(SLOT_MODEL[it.slot], 'snap-detail', 0.55) : it.icon + ' '}${it.name}</div>
       <div class="id-desc">${itemDesc(it)}</div>
       <div style="display:flex;gap:6px">
         <button class="act" onclick="game.equip(${selectedInv})">FELVESZ</button>
@@ -1747,6 +1821,7 @@ function renderBag() {
     $('itemDetail').innerHTML = `<div style="color:#566;font-style:italic;text-align:center;padding-top:26px">
       ${state.inventory.length ? 'Kattints egy tárgyra a részletekhez!' : 'A táskád üres — nézz szét a Piactéren!'}</div>`;
   }
+  fillSnaps();
 }
 
 function itemDesc(it) {
@@ -1781,7 +1856,8 @@ function renderShop() {
   }
   $('shopList').innerHTML = state.shopStock.map((it, i) => `
     <div class="card">
-      <div class="c-title" style="color:${rarityColor(it)}">${it.icon} ${it.name}</div>
+      ${canSnap() ? snapImg(SLOT_MODEL[it.slot], 'snap-item', 0.55) : ''}
+      <div class="c-title" style="color:${rarityColor(it)};text-align:center">${canSnap() ? '' : it.icon + ' '}${it.name}</div>
       <div class="c-sub" style="color:${rarityColor(it)};font-size:11px">${rarityName(it)}</div>
       <div class="c-sub">${itemDesc(it)}</div>
       <div class="c-foot">
@@ -1789,6 +1865,7 @@ function renderShop() {
         <button class="act" ${state.credits < it.price ? 'disabled' : ''} onclick="game.buy(${i})">VESZEM</button>
       </div>
     </div>`).join('');
+  fillSnaps();
 }
 
 /* ============================================================
@@ -1815,6 +1892,7 @@ function renderTraining() {
   const full = state.hp >= maxHp();
   $('healBtn').textContent = full ? '✅ AZ ÉLETERŐD TELE VAN' : `🧪 GYÓGYULÁS (${state.hp}/${maxHp()}) — ${healCost}🪙`;
   $('healBtn').disabled = full || state.credits < healCost;
+  if (canSnap()) { $('healPotImg').setAttribute('data-snap', 'models/items/potion.glb'); fillSnaps(); }
 }
 
 /* ============================================================
@@ -1837,7 +1915,7 @@ function renderQuests() {
     const done = left <= 0;
     $('questContent').innerHTML = `
       <div class="exp-active">
-        <div style="font-size:44px">${e.icon}</div>
+        ${canSnap() ? snapImg(EXP_MODEL[e.id] || EXP_MODEL.short, 'snap-quest', 0.7) : `<div style="font-size:44px">${e.icon}</div>`}
         <div class="c-title" style="font-size:15px;margin:6px 0">${e.name}</div>
         ${done
           ? `<div style="color:var(--green);font-size:15px;font-weight:700;margin:8px 0">✅ A csapat visszatért!</div>
@@ -1852,7 +1930,7 @@ function renderQuests() {
     const gold = Math.round((30 + L * 12) * e.gold * loc.rewardMult);
     const xp = Math.round((20 + L * 8) * e.xp * loc.rewardMult);
     return `<div class="card">
-      <div style="font-size:32px;text-align:center">${e.icon}</div>
+      ${canSnap() ? snapImg(EXP_MODEL[e.id] || EXP_MODEL.short, 'snap-quest', 0.7) : `<div style="font-size:32px;text-align:center">${e.icon}</div>`}
       <div class="c-title" style="text-align:center">${e.name}</div>
       <div class="c-sub" style="text-align:center">${e.desc}</div>
       <div class="c-sub">⏱ ${e.mins} perc &nbsp;·&nbsp; ~${gold}🪙 · ~${xp} XP</div>
@@ -1862,6 +1940,7 @@ function renderQuests() {
       </div>
     </div>`;
   }).join('') + '</div>';
+  fillSnaps();
 }
 
 /* másodpercenkénti visszaszámláló + kész-értesítés */
@@ -1905,7 +1984,7 @@ function renderRankingContent(rows) {
     : 'Helyi riválisok';
   let all;
   if (isLive) {
-    all = rows.map((r, i) => ({ name: r.name, level: r.level, fame: r.fame, idx: i, me: window.Online && r.user_id === Online.myId() }));
+    all = rows.map((r, i) => ({ name: r.name, level: r.level, fame: r.fame, skin: r.skin, idx: i, me: window.Online && r.user_id === Online.myId() }));
     if (!all.some(x => x.me)) all.push({ name: state.name, level: state.level, fame: state.fame, me: true, idx: -1 });
     all.sort((a, b) => b.fame - a.fame);
   } else {
@@ -1935,13 +2014,14 @@ function renderRankingContent(rows) {
   $('rankBody').innerHTML = all.map((r, pos) => `
     <tr class="${r.me ? 'me' : ''}">
       <td class="${pos === 0 ? 'top1' : ''}">${pos === 0 ? '👑' : (pos + 1) + '.'}</td>
-      <td>${r.name}${r.me ? ' (TE)' : ''}</td>
+      <td>${r.skin && canSnap() ? snapImg(SKIN_MODEL[r.skin] || SKIN_MODEL.ronin, 'snap-mini', 0.4) : ''}${r.name}${r.me ? ' (TE)' : ''}</td>
       <td>${r.level}</td>
       <td class="fame-cell">⭐ ${r.fame}</td>
       <td style="text-align:right">${r.me || r.idx < 0 ? '' :
         `<button class="act pink" ${state.hp < maxHp() * 0.15 ? 'disabled' : ''}
           onclick="game.${isLive ? 'challengeOnline' : 'challengeRival'}(${r.idx})">KIHÍVÁS</button>`}</td>
     </tr>`).join('');
+  fillSnaps();
 }
 
 /* ============================================================
@@ -2009,7 +2089,9 @@ function renderOpponents() {
   const ops = makeOpponents();
   $('opponentList').innerHTML = ops.map((o, i) => `
     <div class="card tier-${o.tier}">
-      <div style="font-size:34px;text-align:center;filter:drop-shadow(0 0 8px rgba(216,68,46,.5))">${o.emoji}</div>
+      ${canSnap() && window.Battle3D
+        ? snapImg(VARIANT_MODEL[Battle3D.variantFor(o.emoji)] || VARIANT_MODEL.humanoid, 'snap-opp', 0.5)
+        : `<div style="font-size:34px;text-align:center;filter:drop-shadow(0 0 8px rgba(216,68,46,.5))">${o.emoji}</div>`}
       <div class="mini-disc"></div>
       <div class="c-title" style="text-align:center">${o.name}</div>
       <div class="c-sub" style="text-align:center">${o.label}</div>
@@ -2024,7 +2106,9 @@ function renderOpponents() {
   const boss = makeBoss();
   $('opponentList').innerHTML += `
     <div class="card boss-card">
-      <div style="font-size:38px;text-align:center;filter:drop-shadow(0 0 10px rgba(216,68,46,.7))">${boss.emoji}</div>
+      ${canSnap() && window.Battle3D
+        ? snapImg(VARIANT_MODEL[Battle3D.variantFor(boss.emoji)] || VARIANT_MODEL.heavy, 'snap-boss', 0.5)
+        : `<div style="font-size:38px;text-align:center;filter:drop-shadow(0 0 10px rgba(216,68,46,.7))">${boss.emoji}</div>`}
       <div class="mini-disc"></div>
       <div class="c-title" style="text-align:center;color:var(--red);text-shadow:0 0 10px rgba(216,68,46,.5)">${boss.name}</div>
       <div class="c-sub" style="text-align:center;color:var(--red);letter-spacing:2px">☠ BOSS ☠</div>
@@ -2038,6 +2122,7 @@ function renderOpponents() {
   if (state.hp < maxHp() * 0.15) {
     $('opponentList').innerHTML += `<div class="card"><div class="c-sub" style="color:var(--red)">Túl gyenge vagy a harchoz — gyógyulj meg az Ispotályban!</div></div>`;
   }
+  fillSnaps();
 }
 
 /* ============================================================
@@ -2233,6 +2318,7 @@ function playerAction(key) {
     c.playerGuarding = true;
     c.playerEnergy = Math.min(100, c.playerEnergy + 25);
     if (window.Battle3D) Battle3D.guard('player');
+    if (window.Sfx) Sfx.shield();
     log('Te: védekező állás. (+25 energia)', 'lp');
   }
   else if (key === 'hack') {
@@ -2340,6 +2426,7 @@ function gainXp(x) {
     state.statPoints += 3;
     state.hp = maxHp();
     msg += `<div style="color:var(--neon)">⬆ SZINTLÉPÉS! Most ${state.level}. szintű vagy (+3 stat pont)</div>`;
+    if (window.Sfx) Sfx.level();
     const perk = PERKS.find(p => p.lvl === state.level);
     if (perk) msg += `<div style="color:var(--purple)">🔓 Új képesség: <b>${perk.name}</b> — ${perk.desc}</div>`;
   }
@@ -2415,6 +2502,7 @@ function endCombat(won) {
       `<div>A medikusok kihúztak az arénából...</div><div>- ${loss} 🪙 arany</div>${fameMsg}`;
   }
   save();
+  if (window.Sfx) { if (won) Sfx.victory(); else Sfx.defeat(); }
   if (window.Online) Online.pushProfile(state);
   renderCombat();
   $('resultOverlay').classList.add('show');
@@ -2506,6 +2594,12 @@ window.game = {
     save(); renderGoals(); renderHeader();
     if (!g.legendary) toast('🎁 ' + msg);
   },
+  toggleMute() {
+    state.muted = !state.muted;
+    save();
+    $('muteIco').textContent = state.muted ? '🔇' : '🔊';
+    if (!state.muted && window.Sfx) Sfx.coin();
+  },
   selectCreateSkin(id) {
     createSkinSel = id;
     renderCreateSkins();
@@ -2525,7 +2619,8 @@ window.game = {
     state.skin = id;
     save();
     renderCharacter();
-    toast('Karakter-váz: ' + id.toUpperCase());
+    if (window.City3D) City3D.refreshHero();
+    toast('Kaszt kiválasztva.');
   },
   selectLocation(id) {
     const l = LOCATIONS.find(x => x.id === id);
@@ -2602,6 +2697,13 @@ window.game = {
    INDÍTÁS
 ============================================================ */
 window.switchScreen = switchScreen;
+
+/* érme-hang a pénzmozgásos műveletekre (egy helyen bekötve) */
+for (const k of ['buy', 'sell', 'train', 'healUp', 'claimGoal', 'claimExpedition', 'restock']) {
+  const orig = game[k];
+  game[k] = function (...a) { const r = orig.apply(this, a); if (window.Sfx) Sfx.coin(); return r; };
+}
+setTimeout(() => { if (state && state.muted) { const m = $('muteIco'); if (m) m.textContent = '🔇'; } }, 0);
 document.querySelectorAll('.menu-btn[data-screen]').forEach(b => {
   b.addEventListener('click', () => switchScreen(b.dataset.screen));
 });
@@ -2645,6 +2747,13 @@ tickRivals();
 save();
 renderOverview();
 if (!state.created) showCreate();
+
+/* a defer-szkriptek (City3D) az inline kód UTÁN töltenek — betöltés után indítjuk a várost */
+window.addEventListener('load', () => {
+  if (window.City3D && document.getElementById('screen-overview').classList.contains('active')) City3D.start();
+  // ha a karakteralkotó a defer-szkriptek előtt nyílt meg, pótoljuk a kaszt-kártyákat
+  if ($('createOverlay').classList.contains('show')) renderCreateSkins();
+});
 
 /* online kapcsolat (ha van kulcs) — kis késleltetéssel, hogy a defer-szkriptek betöltsenek */
 setTimeout(() => {

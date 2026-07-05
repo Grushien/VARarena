@@ -1,0 +1,12 @@
+VASVÁR ARÉNA — városi 3D modellek forrása és licence
+======================================================
+
+Forrás: poly.pizza (közvetlen GLB letöltés)
+Alkotó: Quaternius (https://quaternius.com)
+Licenc: CC0 1.0 (Public Domain) — szabad felhasználás, attribúció nélkül is.
+        Ez a fájl a jószándékú feltüntetés miatt van itt.
+
+Modellek:
+  castle.glb, fantasy_house.glb, fantasy_inn.glb, tower_house.glb,
+  blacksmith.glb, stable.glb, market_stand.glb, cart.glb,
+  barrel.glb, watch_tower.glb, fence.glb
