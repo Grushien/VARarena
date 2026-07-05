@@ -10,12 +10,15 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js" defer></script>
-<script src="js/battle3d.js?v=6" defer></script>
+<script src="js/battle3d.js?v=7" defer></script>
 <script src="js/city3d.js?v=2" defer></script>
 <script src="js/modelsnap.js?v=1" defer></script>
 <script src="js/sfx.js?v=1" defer></script>
+<script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
+<script src="js/cgsdk.js?v=1" defer></script>
+<script src="js/i18n.js?v=1" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
-<script src="js/online.js?v=1" defer></script>
+<script src="js/online.js?v=2" defer></script>
 <style>
   :root {
     --bg: #0c0805;
@@ -141,6 +144,10 @@
     position: relative;
   }
   .menu-btn .mi { font-size: 15px; filter: grayscale(.3) drop-shadow(0 0 3px var(--neon-dim)); }
+  .badge {
+    display: inline-block; background: var(--red); color: #fff; font-family: var(--f-head);
+    font-size: 9px; padding: 1px 6px; border-radius: 8px; margin-left: 6px; vertical-align: middle;
+  }
   .menu-btn:hover { border-color: var(--neon); color: var(--neon); transform: translateX(2px); }
   .menu-btn.active {
     background: linear-gradient(90deg, rgba(240,166,60,.25), rgba(240,166,60,.05));
@@ -824,6 +831,21 @@
   /* ================================================================
      MOBIL
   ================================================================ */
+  /* mobil-finomítás */
+  @media (max-width: 760px) {
+    body { font-size: 14px; }
+    .action-btn { min-height: 62px; padding: 12px 10px; }
+    button.act { padding: 10px 16px; font-size: 11px; }
+    .tb-chip { padding: 4px 8px; font-size: 12px; }
+    .loc-bar { grid-template-columns: repeat(2, 1fr); }
+    table.rank { display: block; overflow-x: auto; }
+    .eq-slot { width: 64px; height: 64px; }
+    .doll-grid { grid-template-columns: 64px 1fr 64px; grid-template-rows: 64px auto 64px; }
+    .exp-timer { font-size: 30px; }
+    #battleStage { height: 190px; }
+  }
+  #cityStage { touch-action: none; }
+
   @media (max-width: 760px) {
     .layout { grid-template-columns: 1fr; }
     aside { border-right: none; border-bottom: 1px solid var(--border); flex-direction: row; flex-wrap: wrap; gap: 4px; }
@@ -847,6 +869,7 @@
     <div class="tb-chip"><span class="ico">⭐</span><span><span class="lab">HÍRNÉV</span><b id="hdrFame" style="color:var(--purple)">0</b></span></div>
     <div class="tb-chip"><span class="ico">🪙</span><span><span class="lab">ARANY</span><b id="hdrCredits" style="color:var(--gold)">0</b></span></div>
     <div class="tb-chip" style="cursor:pointer" onclick="game.toggleMute()" title="Hangok ki/be"><span class="ico" id="muteIco">🔊</span></div>
+    <div class="tb-chip" style="cursor:pointer" onclick="I18N.toggle()" title="Nyelv / Language"><span class="ico" id="langBtn">🌐 EN</span></div>
   </div>
 
   <!-- ============ MENÜ + TARTALOM ============ -->
@@ -862,7 +885,8 @@
       <button class="menu-btn" data-screen="character"><span class="mi">🛡️</span>KARAKTER</button>
       <button class="menu-btn" data-screen="ranking"><span class="mi">🏆</span>RANGLISTA</button>
       <button class="menu-btn" data-screen="goals"><span class="mi">📜</span>KRÓNIKA</button>
-      <button class="menu-btn danger" onclick="game.reset()" style="margin-top:10px"><span class="mi">↺</span>ÚJ KARAKTER</button>
+      <button class="menu-btn" data-screen="mail"><span class="mi">✉️</span>LEVELEK<span id="mailBadge" class="badge" style="display:none"></span></button>
+      <button class="menu-btn" data-screen="clan"><span class="mi">🛡️</span>KLÁN</button>
 
       <div class="side-bars">
         <div class="blab">ÉLETERŐ</div>
@@ -1092,9 +1116,22 @@
       <div class="screen" id="screen-shop">
         <div class="frame"><div class="corner-b"></div>
           <h2>PIACTÉR</h2>
-          <div class="sub">A kereskedő készlete a szintedhez igazodik, és minden szintlépésnél frissül. Eladni a karakterlapon tudsz.</div>
-          <div id="shopActions" style="text-align:center;margin-bottom:12px"></div>
-          <div class="card-list" id="shopList"></div>
+          <div class="loc-bar" style="margin-bottom:12px">
+            <div class="loc-tile sel" id="shopTabVendor" style="--c:#ffd24d" onclick="game.shopTab('vendor')">
+              <div class="loc-ico">🧑‍🌾</div><div class="loc-name">KERESKEDŐ</div></div>
+            <div class="loc-tile" id="shopTabPlayer" style="--c:#5aa0e8" onclick="game.shopTab('player')">
+              <div class="loc-ico">🤝</div><div class="loc-name">JÁTÉKOS PIAC</div></div>
+          </div>
+          <div id="vendorPane">
+            <div class="sub">A kereskedő készlete a szintedhez igazodik, és minden szintlépésnél frissül. Eladni a karakterlapon tudsz.</div>
+            <div id="shopActions" style="text-align:center;margin-bottom:12px"></div>
+            <div class="card-list" id="shopList"></div>
+          </div>
+          <div id="playerPane" style="display:none">
+            <div class="sub">Add el a fölösleges zsákmányod más bajnokoknak, vagy vegyél tőlük olcsóbban!</div>
+            <div id="myListings" style="margin-bottom:12px"></div>
+            <div id="playerMarket"></div>
+          </div>
         </div>
       </div>
 
@@ -1102,7 +1139,8 @@
       <div class="screen" id="screen-training">
         <div class="frame"><div class="corner-b"></div>
           <h2>ISPOTÁLY</h2>
-          <div class="sub">Aranyért véglegesen növelheted az alapstatjaidat. Az ár minden fejlesztéssel nő.</div>
+          <div class="sub">Percenként <b style="color:var(--green)">+10 életerő</b> magától visszatölt — itt étellel és gyógyítással gyorsíthatsz.<br>
+          <span style="color:var(--dim);font-size:12px">(Stat pontokat a Karakter oldalon tudsz elosztani.)</span></div>
           <div class="card-list" id="trainingList"></div>
           <div class="divider"></div>
           <div style="text-align:center">
@@ -1135,6 +1173,31 @@
           <div class="sub">A tetteid könyve — teljesítsd a célokat, és vedd át a jutalmad!<br>
           A végső cél: győzd le mind a 4 helyszín bossát, és légy <b style="color:var(--gold)">A Bajnokok Bajnoka</b>!</div>
           <div id="goalList"></div>
+        </div>
+      </div>
+
+      <!-- ===== LEVELEK ===== -->
+      <div class="screen" id="screen-mail">
+        <div class="frame"><div class="corner-b"></div>
+          <h2>LEVELEK</h2>
+          <div class="sub">Küldj üzenetet más bajnokoknak — az eladott piaci tárgyaid aranya is itt érkezik.</div>
+          <div class="card" style="margin-bottom:14px">
+            <div class="c-title">ÚJ ÜZENET</div>
+            <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px">
+              <input id="mailTo" placeholder="Címzett neve..." style="background:rgba(0,0,0,.5);border:1px solid var(--border);color:var(--text);padding:8px 10px;font-family:var(--f-body)">
+              <textarea id="mailBody" placeholder="Üzeneted..." rows="2" style="background:rgba(0,0,0,.5);border:1px solid var(--border);color:var(--text);padding:8px 10px;font-family:var(--f-body);resize:vertical"></textarea>
+              <button class="act" onclick="game.sendMailUi()" style="align-self:flex-end">KÜLDÉS</button>
+            </div>
+          </div>
+          <div id="mailList"></div>
+        </div>
+      </div>
+
+      <!-- ===== KLÁN ===== -->
+      <div class="screen" id="screen-clan">
+        <div class="frame"><div class="corner-b"></div>
+          <h2>KLÁN</h2>
+          <div id="clanContent"></div>
         </div>
       </div>
 
@@ -1381,6 +1444,29 @@ function currentLocation() {
   return LOCATIONS.find(l => l.id === (state.location || 'rust')) || LOCATIONS[0];
 }
 
+/* Ételek az Ispotályban (azonnali életerő aranyért) */
+const FOODS = [
+  { id: 'bread', name: 'Friss cipó',    icon: '🍞', hp: 25,  cost: 15 },
+  { id: 'meat',  name: 'Sült csülök',   icon: '🍖', hp: 75,  cost: 40 },
+  { id: 'feast', name: 'Hősök lakomája',icon: '🍗', hp: 180, cost: 90 },
+];
+
+/* automata gyógyulás: percenként +10 HP (offline is összegyűlik) */
+function applyRegen() {
+  if (!state) return;
+  const now = Date.now();
+  if (!state.lastRegen) { state.lastRegen = now; return; }
+  const mins = Math.floor((now - state.lastRegen) / 60000);
+  if (mins > 0) {
+    const mh = maxHp();
+    if (state.hp < mh) state.hp = Math.min(mh, state.hp + mins * 10);
+    state.lastRegen += mins * 60000;
+    save();
+    renderHeader();
+  }
+}
+setInterval(applyRegen, 30000);
+
 /* Portyák — valós idejű, időzített küldetések (offline is telnek!) */
 const EXPEDITIONS = [
   { id: 'short', name: 'Rövid portya',  icon: '🥾', mins: 5,  gold: 1.0, xp: 1.0, drop: 0.25, desc: 'Gyors körkép a környéken.' },
@@ -1467,6 +1553,8 @@ function defaultState() {
     created: false,
     bossKills: {},
     claimed: [],
+    clanId: null,
+    muted: false,
   };
 }
 
@@ -1496,8 +1584,10 @@ function migrate() {
   if (state.expedition === undefined) state.expedition = null;
   if (state.lastDaily === undefined) state.lastDaily = '';
   if (state.created === undefined) state.created = true;   // meglévő játékos: nem kell újra karaktert alkotni
+  if (state.lastRegen === undefined) state.lastRegen = Date.now();
   if (state.bossKills === undefined) state.bossKills = {};
   if (state.claimed === undefined) state.claimed = [];
+  if (state.clanId === undefined) state.clanId = null;
 }
 
 function xpNeeded(level) { return 40 + level * 60; }
@@ -1630,6 +1720,8 @@ function switchScreen(name) {
   if (name === 'character') renderCharacter();
   if (name === 'ranking') renderRanking();
   if (name === 'goals') renderGoals();
+  if (name === 'mail') renderMail();
+  if (name === 'clan') renderClan();
 }
 
 /* ============================================================
@@ -1655,6 +1747,104 @@ function renderGoals() {
       </div>
     </div>`;
   }).join('');
+}
+
+/* ============================================================
+   LEVELEK
+============================================================ */
+async function renderMail() {
+  renderHeader();
+  if (!window.Online || !Online.isReady()) {
+    $('mailList').innerHTML = '<div class="c-sub" style="text-align:center;color:var(--red)">Nincs online kapcsolat — a levelezéshez internet szükséges.</div>';
+    return;
+  }
+  $('mailList').innerHTML = '<div class="c-sub" style="text-align:center">Levelek betöltése...</div>';
+  const mails = await Online.inbox();
+  if (!$('screen-mail').classList.contains('active')) return;
+  const unread = mails.filter(m => !m.read).length;
+  const badge = $('mailBadge');
+  badge.style.display = unread ? 'inline-block' : 'none';
+  badge.textContent = unread;
+  $('mailList').innerHTML = mails.length ? mails.map(m => `
+    <div class="goal-row ${m.read ? '' : 'ready'}">
+      <div class="goal-ico">${m.kind === 'trade' ? '💰' : '✉️'}</div>
+      <div style="flex:1"><div class="goal-name">${m.from_name}</div>
+        <div class="goal-desc">${m.body}${m.gold ? ' (+' + m.gold + '🪙)' : ''}</div></div>
+      ${!m.read ? `<button class="act gold" onclick="game.claimMailUi('${m.id}', ${m.gold || 0})">ÁTVESZ</button>`
+        : '<span style="color:var(--dim);font-size:12px">olvasva</span>'}
+    </div>`).join('') : '<div class="c-sub" style="text-align:center">Üres a postaládád.</div>';
+}
+
+/* ============================================================
+   KLÁN
+============================================================ */
+async function renderClan() {
+  renderHeader();
+  if (!window.Online || !Online.isReady()) {
+    $('clanContent').innerHTML = '<div class="c-sub" style="text-align:center;color:var(--red)">Nincs online kapcsolat.</div>';
+    return;
+  }
+  if (!state.clanId) {
+    $('clanContent').innerHTML = `
+      <div class="sub">Még nem vagy egyik klánnak sem a tagja.</div>
+      <div class="card-list">
+        <div class="card">
+          <div class="c-title">ÚJ KLÁN ALAPÍTÁSA</div>
+          <input id="clanNewName" placeholder="Klán neve..." style="margin:8px 0 6px;background:rgba(0,0,0,.5);border:1px solid var(--border);color:var(--text);padding:8px">
+          <input id="clanNewTag" placeholder="Rövid jelzés (pl. VAS)" maxlength="6" style="margin-bottom:8px;background:rgba(0,0,0,.5);border:1px solid var(--border);color:var(--text);padding:8px">
+          <button class="act gold" onclick="game.createClanUi()">ALAPÍTÁS</button>
+        </div>
+        <div class="card">
+          <div class="c-title">CSATLAKOZÁS</div>
+          <input id="clanJoinName" placeholder="Klán neve vagy jelzése..." style="margin:8px 0;background:rgba(0,0,0,.5);border:1px solid var(--border);color:var(--text);padding:8px">
+          <button class="act" onclick="game.joinClanUi()">CSATLAKOZÁS</button>
+        </div>
+      </div>`;
+    return;
+  }
+  $('clanContent').innerHTML = '<div class="c-sub" style="text-align:center">Betöltés...</div>';
+  const clan = await Online.getMyClan(state.clanId);
+  if (!$('screen-clan').classList.contains('active')) return;
+  if (!clan) { state.clanId = null; save(); renderClan(); return; }
+  const members = await Online.clanMembers(state.clanId);
+  $('clanContent').innerHTML = `
+    <div class="sub">[${clan.tag}] ${clan.name} — ${members.length} tag</div>
+    <table class="rank"><thead><tr><th>#</th><th>BAJNOK</th><th>SZINT</th><th>HÍRNÉV</th></tr></thead>
+    <tbody>${members.map((m, i) => `<tr class="${m.user_id === Online.myId() ? 'me' : ''}">
+      <td>${i + 1}.</td><td>${m.name}${m.user_id === clan.leader_id ? ' 👑' : ''}</td><td>${m.level}</td><td>⭐${m.fame}</td></tr>`).join('')}</tbody></table>
+    <div class="divider"></div>
+    <button class="act pink" onclick="game.leaveClanUi()">KILÉPÉS A KLÁNBÓL</button>`;
+}
+
+/* ============================================================
+   JÁTÉKOS-PIAC (a Piactér al-fülén)
+============================================================ */
+let shopActiveTab = 'vendor';
+let lastMarketListings = [];
+async function renderPlayerMarket() {
+  if (!window.Online || !Online.isReady()) {
+    $('myListings').innerHTML = '';
+    $('playerMarket').innerHTML = '<div class="c-sub" style="text-align:center;color:var(--red)">Nincs online kapcsolat — a játékos-piachoz internet szükséges.</div>';
+    return;
+  }
+  $('playerMarket').innerHTML = '<div class="c-sub" style="text-align:center">Betöltés...</div>';
+  const [mine, listings] = await Promise.all([Online.myListings(), Online.marketList(null)]);
+  if (!$('screen-shop').classList.contains('active') || shopActiveTab !== 'player') return;
+  $('myListings').innerHTML = '<div class="c-sub" style="margin-bottom:10px">Eladni a <b style="color:var(--gold)">Karakter</b> oldalon tudsz: nyisd meg a táskádat, válassz tárgyat, és nyomd meg a <b style="color:#5aa0e8">PIACRA</b> gombot!</div>' +
+    (mine.length ? '<div class="c-title" style="margin-bottom:6px">SAJÁT HIRDETÉSEID</div>' +
+    mine.map(l => `<div class="goal-row"><div class="goal-ico">${l.item.icon || '📦'}</div>
+      <div style="flex:1"><div class="goal-name">${l.item.name}</div><div class="goal-desc">${l.sold ? 'ELADVA' : l.price + '🪙'}</div></div>
+      ${!l.sold ? `<button class="act pink" onclick="game.cancelListingUi('${l.id}')">VISSZAVON</button>` : ''}
+    </div>`).join('') : '');
+  const others = listings.filter(l => l.seller_id !== Online.myId());
+  lastMarketListings = others;
+  $('playerMarket').innerHTML = others.length ? others.map(l => `
+    <div class="card"><div style="font-size:30px;text-align:center">${l.item.icon || '📦'}</div>
+      <div class="c-title" style="text-align:center;color:${rarityColor(l.item)}">${l.item.name}</div>
+      <div class="c-sub" style="text-align:center">Eladó: ${l.seller_name}</div>
+      <div class="c-foot"><span style="color:var(--gold);font-weight:600">🪙 ${l.price}</span>
+      <button class="act" ${state.credits < l.price ? 'disabled' : ''} onclick="game.buyMarketUi('${l.id}')">VESZEM</button></div>
+    </div>`).join('') : '<div class="c-sub" style="text-align:center">Jelenleg nincs semmi eladó.</div>';
 }
 
 /* ============================================================
@@ -1813,9 +2003,10 @@ function renderBag() {
     $('itemDetail').innerHTML = `
       <div class="id-name" style="color:${rarityColor(it)}">${canSnap() ? snapImg(SLOT_MODEL[it.slot], 'snap-detail', 0.55) : it.icon + ' '}${it.name}</div>
       <div class="id-desc">${itemDesc(it)}</div>
-      <div style="display:flex;gap:6px">
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
         <button class="act" onclick="game.equip(${selectedInv})">FELVESZ</button>
         <button class="act gold" onclick="game.sell(${selectedInv})">ELAD ${Math.floor(it.price/2)}🪙</button>
+        <button class="act" style="border-color:#5aa0e8;color:#5aa0e8" onclick="game.listOnMarketUi(${selectedInv})">PIACRA</button>
       </div>`;
   } else {
     $('itemDetail').innerHTML = `<div style="color:#566;font-style:italic;text-align:center;padding-top:26px">
@@ -1850,6 +2041,7 @@ function renderShop() {
   ensureShopStock();
   $('shopActions').innerHTML = `
     <button class="act gold" ${state.credits < 25 ? 'disabled' : ''} onclick="game.restock()">🔄 ÚJ KÉSZLET — 25🪙</button>`;
+  if (shopActiveTab === 'player') renderPlayerMarket();
   if (!state.shopStock.length) {
     $('shopList').innerHTML = '<div class="card"><div class="c-sub">Elfogyott az áru — kérj új készletet!</div></div>';
     return;
@@ -1877,17 +2069,17 @@ function trainCost(stat) {
 }
 function renderTraining() {
   renderHeader();
-  $('trainingList').innerHTML = Object.keys(STAT_DEFS).map(key => {
-    const cost = trainCost(key);
-    return `<div class="card">
-      <div class="c-title" style="color:var(--neon)">${STAT_DEFS[key].icon} ${STAT_DEFS[key].name}: ${state.stats[key]}</div>
-      <div class="c-sub">${STAT_DEFS[key].desc}</div>
-      <div class="c-foot">
-        <span style="color:var(--gold);font-weight:600">🪙 ${cost}</span>
-        <button class="act" ${state.credits < cost ? 'disabled' : ''} onclick="game.train('${key}')">+1 FEJLESZT</button>
+  applyRegen();
+  $('trainingList').innerHTML = FOODS.map((f, i) => `
+    <div class="card">
+      <div style="font-size:34px;text-align:center">${f.icon}</div>
+      <div class="c-title" style="text-align:center;color:var(--green)">${f.name}</div>
+      <div class="c-sub" style="text-align:center">+${f.hp} életerő azonnal</div>
+      <div class="c-foot" style="justify-content:center;gap:10px">
+        <span style="color:var(--gold);font-weight:600">🪙 ${f.cost}</span>
+        <button class="act" ${state.credits < f.cost || state.hp >= maxHp() ? 'disabled' : ''} onclick="game.eat(${i})">MEGESZEM</button>
       </div>
-    </div>`;
-  }).join('');
+    </div>`).join('');
   const healCost = Math.max(10, Math.floor((maxHp() - state.hp) * 0.8));
   const full = state.hp >= maxHp();
   $('healBtn').textContent = full ? '✅ AZ ÉLETERŐD TELE VAN' : `🧪 GYÓGYULÁS (${state.hp}/${maxHp()}) — ${healCost}🪙`;
@@ -2169,7 +2361,9 @@ function beginCombat(enemy, opts) {
   if (window.Battle3D) Battle3D.start({
     variant: Battle3D.variantFor(enemy.emoji || '💀'), locId, skin: state.skin,
     enemyScale: enemy.boss ? 1.35 : 1, enemySkin: enemy.enemySkin || null,
+    enemyName: enemy.name,
   });
+  if (window.CG) CG.start();
   $('combatLog').innerHTML = '';
   log('— A tömeg üvölt. ' + enemy.name + ' belép az arénába! —', 'lg');
   renderCombat();
@@ -2504,6 +2698,15 @@ function endCombat(won) {
   save();
   if (window.Sfx) { if (won) Sfx.victory(); else Sfx.defeat(); }
   if (window.Online) Online.pushProfile(state);
+  if (window.CG) {
+    CG.stop();
+    CG.fightEnded();
+    if (won && c.enemy.boss) CG.happy();
+    if (won && CG.available()) {
+      window.__lastCrGain = c.enemy.credits;
+      $('resultRewards').innerHTML += `<div style="margin-top:8px"><button class="act gold" onclick="game.watchAd()">🎬 DUPLA ARANY VIDEÓÉRT</button></div>`;
+    }
+  }
   renderCombat();
   $('resultOverlay').classList.add('show');
 }
@@ -2594,6 +2797,85 @@ window.game = {
     save(); renderGoals(); renderHeader();
     if (!g.legendary) toast('🎁 ' + msg);
   },
+  async sendMailUi() {
+    if (!window.Online || !Online.isReady()) { toast('Nincs online kapcsolat!'); return; }
+    const toName = ($('mailTo').value || '').trim();
+    const body = ($('mailBody').value || '').trim();
+    if (!toName || !body) { toast('Add meg a címzettet és az üzenetet!'); return; }
+    const target = await Online.findChampionByName(toName);
+    if (!target) { toast('Nincs ilyen nevű bajnok!'); return; }
+    const ok = await Online.sendMail(target.user_id, target.name, body, 'msg', 0, null);
+    if (ok) { $('mailTo').value = ''; $('mailBody').value = ''; toast('✉️ Levél elküldve!'); renderMail(); }
+    else toast('Nem sikerült elküldeni.');
+  },
+  async claimMailUi(id, gold) {
+    if (gold > 0) { state.credits += gold; save(); renderHeader(); }
+    await Online.claimMail(id);
+    toast(gold > 0 ? '+' + gold + '🪙 átvéve!' : 'Levél megnyitva.');
+    renderMail();
+  },
+  async createClanUi() {
+    const name = ($('clanNewName').value || '').trim();
+    const tag = ($('clanNewTag').value || '').trim().toUpperCase();
+    if (name.length < 3 || tag.length < 2) { toast('Adj meg egy nevet (3+) és jelzést (2+)!'); return; }
+    const res = await Online.createClan(name, tag);
+    if (res.error) { toast('Nem sikerült: már foglalt a név?'); return; }
+    state.clanId = res.data.id;
+    await Online.setMyClan(state.clanId);
+    save(); renderClan(); Online.pushProfile(state);
+    toast('🛡️ Klán megalapítva!');
+  },
+  async joinClanUi() {
+    const q = ($('clanJoinName').value || '').trim();
+    if (!q) return;
+    const clan = await Online.findClanByTag(q);
+    if (!clan) { toast('Nincs ilyen klán!'); return; }
+    state.clanId = clan.id;
+    await Online.setMyClan(state.clanId);
+    save(); renderClan(); Online.pushProfile(state);
+    toast('🛡️ Csatlakoztál: ' + clan.name);
+  },
+  async leaveClanUi() {
+    if (!confirm('Biztosan kilépsz a klánból?')) return;
+    state.clanId = null;
+    await Online.setMyClan(null);
+    save(); renderClan(); Online.pushProfile(state);
+  },
+  shopTab(tab) {
+    shopActiveTab = tab;
+    $('shopTabVendor').classList.toggle('sel', tab === 'vendor');
+    $('shopTabPlayer').classList.toggle('sel', tab === 'player');
+    $('vendorPane').style.display = tab === 'vendor' ? 'block' : 'none';
+    $('playerPane').style.display = tab === 'player' ? 'block' : 'none';
+    if (tab === 'player') renderPlayerMarket();
+  },
+  async listOnMarketUi(invIdx) {
+    if (!window.Online || !Online.isReady()) { toast('Nincs online kapcsolat!'); return; }
+    const it = state.inventory[invIdx];
+    if (!it) return;
+    const price = Math.max(1, Math.round(it.price * 0.9));
+    const ok = await Online.createListing(it, price, null);
+    if (!ok) { toast('Nem sikerült piacra tenni.'); return; }
+    state.inventory.splice(invIdx, 1);
+    selectedInv = -1;
+    save(); renderCharacter();
+    toast('📦 Piacra téve ' + price + '🪙-ért!');
+  },
+  async buyMarketUi(id) {
+    const listing = lastMarketListings.find(l => l.id === id);
+    if (!listing || state.credits < listing.price) return;
+    const res = await Online.buyListing(listing);
+    if (res.error) { toast(res.error === 'mar_elkelt' ? 'Már elkelt!' : 'Nem sikerült.'); renderPlayerMarket(); return; }
+    state.credits -= listing.price;
+    if (state.inventory.length < 15) state.inventory.push(listing.item);
+    save(); renderHeader();
+    toast('🛍️ Megvetted: ' + listing.item.name);
+    renderPlayerMarket();
+  },
+  async cancelListingUi(id) {
+    await Online.cancelListing(id);
+    renderPlayerMarket();
+  },
   toggleMute() {
     state.muted = !state.muted;
     save();
@@ -2628,6 +2910,23 @@ window.game = {
     state.location = id;
     save();
     renderOpponents();
+  },
+  eat(idx) {
+    const f = FOODS[idx];
+    if (!f || state.credits < f.cost || state.hp >= maxHp()) return;
+    state.credits -= f.cost;
+    state.hp = Math.min(maxHp(), state.hp + f.hp);
+    save(); renderTraining();
+    toast(f.icon + ' +' + f.hp + ' életerő!');
+  },
+  watchAd() {
+    if (!window.CG || !CG.available()) return;
+    const bonus = window.__lastCrGain || 50;
+    CG.rewarded(() => {
+      state.credits += bonus;
+      save(); renderHeader();
+      toast('🎬 +' + bonus + '🪙 jutalom!');
+    });
   },
   healUp() {
     const cost = Math.max(10, Math.floor((maxHp() - state.hp) * 0.8));
@@ -2699,7 +2998,7 @@ window.game = {
 window.switchScreen = switchScreen;
 
 /* érme-hang a pénzmozgásos műveletekre (egy helyen bekötve) */
-for (const k of ['buy', 'sell', 'train', 'healUp', 'claimGoal', 'claimExpedition', 'restock']) {
+for (const k of ['buy', 'sell', 'train', 'healUp', 'eat', 'claimGoal', 'claimExpedition', 'restock']) {
   const orig = game[k];
   game[k] = function (...a) { const r = orig.apply(this, a); if (window.Sfx) Sfx.coin(); return r; };
 }

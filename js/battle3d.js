@@ -90,6 +90,9 @@ window.Battle3D = (function () {
         o.material = o.material.clone();
         o.frustumCulled = false;
         b.fadeMats.push(o.material);
+        if (b.tint !== undefined && o.material.color) {
+          o.material.color.multiply(new THREE.Color().setHSL(b.tint, 0.35, 0.75));
+        }
         if (o.material.emissive) b.phongs.push(o.material);
       }
     });
@@ -550,6 +553,7 @@ window.Battle3D = (function () {
       anim: null, dead: false, disposed: false,
       model: false, mixer: null, clips: null, current: null,
       ranged: opts.weapon === 'gun' || opts.weapon === 'staff' || opts.variant === 'drone',
+      tint: opts.tint,
       t: Math.random() * 10,
     };
     const mk = MODEL_MAP[opts.modelKey];
@@ -559,6 +563,23 @@ window.Battle3D = (function () {
         .catch(() => {});
     }
     return bot;
+  }
+
+  /* több modell-változat: a név hash-e dönti el, melyik modellt kapja az ellenfél */
+  const ENEMY_POOLS = {
+    humanoid: ['humanoid', 'zsoldos', 'bruiser'],
+    heavy:    ['heavy', 'ronin', 'bruiser'],
+    drone:    ['drone', 'netrunner'],
+    beast:    ['beast'],
+  };
+  function nameHash(nm) {
+    let h = 0; nm = nm || '';
+    for (let i = 0; i < nm.length; i++) h = (h * 31 + nm.charCodeAt(i)) >>> 0;
+    return h;
+  }
+  function pickEnemyModel(variant, name) {
+    const pool = ENEMY_POOLS[variant] || ['humanoid'];
+    return pool[nameHash(name) % pool.length];
   }
 
   function setAnim(bot, type, dur, extra) {
@@ -1145,7 +1166,8 @@ window.Battle3D = (function () {
             accent,
           },
           weapon: eVariant === 'heavy' ? 'fists' : 'katana',
-          modelKey: eVariant,
+          modelKey: pickEnemyModel(eVariant, opts && opts.enemyName),
+          tint: nameHash(opts && opts.enemyName) % 360 / 360,
         });
       }
       if (opts && opts.enemyScale && opts.enemyScale !== 1) {
