@@ -317,6 +317,15 @@ window.I18N = (function () {
     'SAJÁT HIRDETÉSEID': 'YOUR LISTINGS', 'ELADVA': 'SOLD', 'VISSZAVON': 'CANCEL',
     'Eladó: ': 'Seller: ', 'Jelenleg nincs semmi eladó.': 'Nothing for sale right now.',
     'PIACRA': 'LIST',
+    'szintű klán': 'level clan', 'jutalom minden tagnak': 'reward for all members',
+    'KLÁN KASSZA: ': 'CLAN TREASURY: ', 'Adományozz aranyat a kasszába — ebből fejlesztheti a vezető a klánt.':
+      'Donate gold to the treasury — the leader can use it to upgrade the clan.',
+    'ADOMÁNYOZÁS': 'DONATE', 'KLÁN FEJLESZTÉSE': 'UPGRADE CLAN',
+    'Költség: ': 'Cost: ', ' a kasszából. Minden szint +2% arany/XP jutalmat ad a tagoknak.':
+      ' from the treasury. Each level gives +2% gold/XP to all members.',
+    'FEJLESZTÉS (': 'UPGRADE (', '// KLÁN-PIAC': '// CLAN MARKET',
+    'Nincs klán-piaci kínálat.': 'No items listed on the clan market.',
+    'Minden ritkaság': 'All rarities', 'Minden kategória': 'All categories',
   };
 
   const keys = Object.keys(DICT).sort((a, b) => b.length - a.length);

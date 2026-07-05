@@ -18,7 +18,7 @@
 <script src="js/cgsdk.js?v=1" defer></script>
 <script src="js/i18n.js?v=1" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
-<script src="js/online.js?v=2" defer></script>
+<script src="js/online.js?v=3" defer></script>
 <style>
   :root {
     --bg: #0c0805;
@@ -1807,13 +1807,56 @@ async function renderClan() {
   if (!$('screen-clan').classList.contains('active')) return;
   if (!clan) { state.clanId = null; save(); renderClan(); return; }
   const members = await Online.clanMembers(state.clanId);
+  clanLevelCache = clan.level || 1;
+  const isLeader = clan.leader_id === Online.myId();
+  const upgradeCost = 500 * (clan.level || 1);
   $('clanContent').innerHTML = `
-    <div class="sub">[${clan.tag}] ${clan.name} — ${members.length} tag</div>
+    <div class="sub">[${clan.tag}] ${clan.name} — ${members.length} tag &nbsp;·&nbsp; <b style="color:var(--gold)">${clan.level || 1}. szintű klán</b> (+${((clan.level || 1) - 1) * 2}% jutalom minden tagnak)</div>
     <table class="rank"><thead><tr><th>#</th><th>BAJNOK</th><th>SZINT</th><th>HÍRNÉV</th></tr></thead>
     <tbody>${members.map((m, i) => `<tr class="${m.user_id === Online.myId() ? 'me' : ''}">
       <td>${i + 1}.</td><td>${m.name}${m.user_id === clan.leader_id ? ' 👑' : ''}</td><td>${m.level}</td><td>⭐${m.fame}</td></tr>`).join('')}</tbody></table>
     <div class="divider"></div>
+    <div class="card-list">
+      <div class="card">
+        <div class="c-title">KLÁN KASSZA: <span style="color:var(--gold)">${clan.gold || 0}🪙</span></div>
+        <div class="c-sub">Adományozz aranyat a kasszába — ebből fejlesztheti a vezető a klánt.</div>
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <input id="clanDonateAmt" type="number" min="1" placeholder="arany" style="width:90px;background:rgba(0,0,0,.5);border:1px solid var(--border);color:var(--text);padding:8px">
+          <button class="act gold" onclick="game.donateClanUi()">ADOMÁNYOZÁS</button>
+        </div>
+      </div>
+      ${isLeader ? `<div class="card">
+        <div class="c-title">KLÁN FEJLESZTÉSE</div>
+        <div class="c-sub">Költség: ${upgradeCost}🪙 a kasszából. Minden szint +2% arany/XP jutalmat ad a tagoknak.</div>
+        <button class="act" style="margin-top:8px" ${(clan.gold || 0) < upgradeCost ? 'disabled' : ''} onclick="game.upgradeClanUi()">FEJLESZTÉS (${clan.level || 1}. → ${(clan.level || 1) + 1}.)</button>
+      </div>` : ''}
+    </div>
+    <div class="divider"></div>
+    <h3 style="font-size:11px;letter-spacing:3px;color:var(--neon2);margin-bottom:10px;text-align:center">// KLÁN-PIAC</h3>
+    <div class="card-list" id="clanMarketList"></div>
+    <div class="divider"></div>
     <button class="act pink" onclick="game.leaveClanUi()">KILÉPÉS A KLÁNBÓL</button>`;
+  renderClanMarket(clan.id);
+}
+
+let clanLevelCache = 1;
+function clanBonusMult() { return 1 + Math.max(0, clanLevelCache - 1) * 0.02; }
+
+let lastClanMarketListings = [];
+async function renderClanMarket(clanId) {
+  const el = $('clanMarketList');
+  if (!el) return;
+  el.innerHTML = '<div class="c-sub" style="text-align:center">Betöltés...</div>';
+  const listings = (await Online.marketList(clanId)).filter(l => l.seller_id !== Online.myId());
+  if (!$('clanMarketList')) return;
+  lastClanMarketListings = listings;
+  $('clanMarketList').innerHTML = listings.length ? listings.map(l => `
+    <div class="card"><div style="font-size:28px;text-align:center">${l.item.icon || '📦'}</div>
+      <div class="c-title" style="text-align:center;color:${rarityColor(l.item)}">${l.item.name}</div>
+      <div class="c-sub" style="text-align:center">Eladó: ${l.seller_name}</div>
+      <div class="c-foot"><span style="color:var(--gold);font-weight:600">🪙 ${l.price}</span>
+      <button class="act" ${state.credits < l.price ? 'disabled' : ''} onclick="game.buyClanMarketUi('${l.id}')">VESZEM</button></div>
+    </div>`).join('') : '<div class="c-sub" style="text-align:center">Nincs klán-piaci kínálat.</div>';
 }
 
 /* ============================================================
@@ -1821,6 +1864,7 @@ async function renderClan() {
 ============================================================ */
 let shopActiveTab = 'vendor';
 let lastMarketListings = [];
+let lastMarketListingsAll = [];
 async function renderPlayerMarket() {
   if (!window.Online || !Online.isReady()) {
     $('myListings').innerHTML = '';
@@ -1836,15 +1880,34 @@ async function renderPlayerMarket() {
       <div style="flex:1"><div class="goal-name">${l.item.name}</div><div class="goal-desc">${l.sold ? 'ELADVA' : l.price + '🪙'}</div></div>
       ${!l.sold ? `<button class="act pink" onclick="game.cancelListingUi('${l.id}')">VISSZAVON</button>` : ''}
     </div>`).join('') : '');
-  const others = listings.filter(l => l.seller_id !== Online.myId());
-  lastMarketListings = others;
-  $('playerMarket').innerHTML = others.length ? others.map(l => `
+  lastMarketListingsAll = listings.filter(l => l.seller_id !== Online.myId());
+  $('myListings').innerHTML += `<div style="display:flex;gap:8px;margin:10px 0">
+    <select id="marketFRarity" onchange="game.filterMarket()" style="background:rgba(0,0,0,.5);border:1px solid var(--border);color:var(--text);padding:6px">
+      <option value="">Minden ritkaság</option>
+      ${RARITIES.map((r, i) => `<option value="${i}">${r.name}</option>`).join('')}
+    </select>
+    <select id="marketFSlot" onchange="game.filterMarket()" style="background:rgba(0,0,0,.5);border:1px solid var(--border);color:var(--text);padding:6px">
+      <option value="">Minden kategória</option>
+      ${Object.keys(SLOT_META).map(k => `<option value="${k}">${SLOT_META[k].label}</option>`).join('')}
+    </select>
+  </div><div class="card-list" id="playerMarketCards"></div>`;
+  renderMarketCards();
+}
+
+function renderMarketCards() {
+  const fr = $('marketFRarity') ? $('marketFRarity').value : '';
+  const fs = $('marketFSlot') ? $('marketFSlot').value : '';
+  const filtered = lastMarketListingsAll.filter(l =>
+    (fr === '' || (l.item.rarity || 0) == fr) && (fs === '' || l.item.slot === fs));
+  lastMarketListings = filtered;
+  const host = $('playerMarketCards') || $('playerMarket');
+  host.innerHTML = filtered.length ? filtered.map(l => `
     <div class="card"><div style="font-size:30px;text-align:center">${l.item.icon || '📦'}</div>
       <div class="c-title" style="text-align:center;color:${rarityColor(l.item)}">${l.item.name}</div>
       <div class="c-sub" style="text-align:center">Eladó: ${l.seller_name}</div>
       <div class="c-foot"><span style="color:var(--gold);font-weight:600">🪙 ${l.price}</span>
       <button class="act" ${state.credits < l.price ? 'disabled' : ''} onclick="game.buyMarketUi('${l.id}')">VESZEM</button></div>
-    </div>`).join('') : '<div class="c-sub" style="text-align:center">Jelenleg nincs semmi eladó.</div>';
+    </div>`).join('') : '<div class="c-sub" style="text-align:center">Jelenleg nincs semmi eladó (vagy a szűrő nem talált egyezést).</div>';
 }
 
 /* ============================================================
@@ -2645,7 +2708,7 @@ function endCombat(won) {
   const box = $('resultBox');
   if (won) {
     state.wins++;
-    const xpGain = c.enemy.xp, crGain = c.enemy.credits, fameGain = c.enemy.fame || 0;
+    const xpGain = Math.round(c.enemy.xp * clanBonusMult()), crGain = Math.round(c.enemy.credits * clanBonusMult()), fameGain = c.enemy.fame || 0;
     state.credits += crGain;
     state.fame += fameGain;
     if (c.pvpRivalIdx !== null) {
@@ -2853,14 +2916,21 @@ window.game = {
     if (!window.Online || !Online.isReady()) { toast('Nincs online kapcsolat!'); return; }
     const it = state.inventory[invIdx];
     if (!it) return;
-    const price = Math.max(1, Math.round(it.price * 0.9));
-    const ok = await Online.createListing(it, price, null);
+    const suggested = Math.max(1, Math.round(it.price * 0.9));
+    const priceStr = prompt('Mennyiért add el?\n(' + it.name + ')', suggested);
+    if (priceStr === null) return;
+    const price = Math.max(1, parseInt(priceStr, 10) || 0);
+    if (!price) { toast('Érvénytelen ár.'); return; }
+    let clanTarget = null;
+    if (state.clanId && confirm('A klán-piacra teszed ki? OK = klán-piac, Mégse = nyilvános piac.')) clanTarget = state.clanId;
+    const ok = await Online.createListing(it, price, clanTarget);
     if (!ok) { toast('Nem sikerült piacra tenni.'); return; }
     state.inventory.splice(invIdx, 1);
     selectedInv = -1;
     save(); renderCharacter();
-    toast('📦 Piacra téve ' + price + '🪙-ért!');
+    toast('📦 Piacra téve ' + price + '🪙-ért' + (clanTarget ? ' (klán-piac)!' : '!'));
   },
+  filterMarket() { renderMarketCards(); },
   async buyMarketUi(id) {
     const listing = lastMarketListings.find(l => l.id === id);
     if (!listing || state.credits < listing.price) return;
@@ -2872,9 +2942,38 @@ window.game = {
     toast('🛍️ Megvetted: ' + listing.item.name);
     renderPlayerMarket();
   },
+  async buyClanMarketUi(id) {
+    const listing = lastClanMarketListings.find(l => l.id === id);
+    if (!listing || state.credits < listing.price) return;
+    const res = await Online.buyListing(listing);
+    if (res.error) { toast(res.error === 'mar_elkelt' ? 'Már elkelt!' : 'Nem sikerült.'); renderClanMarket(state.clanId); return; }
+    state.credits -= listing.price;
+    if (state.inventory.length < 15) state.inventory.push(listing.item);
+    save(); renderHeader();
+    toast('🛍️ Megvetted: ' + listing.item.name);
+    renderClanMarket(state.clanId);
+  },
   async cancelListingUi(id) {
     await Online.cancelListing(id);
     renderPlayerMarket();
+  },
+  async donateClanUi() {
+    const amt = parseInt(($('clanDonateAmt').value || '0'), 10);
+    if (!amt || amt <= 0) { toast('Adj meg egy érvényes összeget!'); return; }
+    if (amt > state.credits) { toast('Nincs ennyi aranyad!'); return; }
+    const ok = await Online.donateToClan(state.clanId, amt);
+    if (!ok) { toast('Nem sikerült az adományozás.'); return; }
+    state.credits -= amt;
+    save(); renderHeader();
+    toast('🪙 ' + amt + ' arany a klánkasszába!');
+    renderClan();
+  },
+  async upgradeClanUi() {
+    const res = await Online.upgradeClan(state.clanId);
+    if (res.error) { toast(res.error === 'not_enough_gold' ? 'Nincs elég arany a kasszában!' : 'Nem sikerült.'); return; }
+    clanLevelCache = res.level;
+    toast('🎉 A klán elérte a ' + res.level + '. szintet!');
+    renderClan();
   },
   toggleMute() {
     state.muted = !state.muted;
@@ -2951,8 +3050,8 @@ window.game = {
     const e = EXPEDITIONS.find(x => x.id === ex.type) || EXPEDITIONS[0];
     const loc = LOCATIONS.find(l => l.id === ex.locId) || LOCATIONS[0];
     const L = state.level;
-    const gold = Math.round((30 + L * 12) * e.gold * loc.rewardMult);
-    const xp = Math.round((20 + L * 8) * e.xp * loc.rewardMult);
+    const gold = Math.round((30 + L * 12) * e.gold * loc.rewardMult * clanBonusMult());
+    const xp = Math.round((20 + L * 8) * e.xp * loc.rewardMult * clanBonusMult());
     state.credits += gold;
     state.fame += Math.round(3 * e.gold * loc.rewardMult);
     const lvlMsg = gainXp(xp);
@@ -3057,7 +3156,12 @@ window.addEventListener('load', () => {
 /* online kapcsolat (ha van kulcs) — kis késleltetéssel, hogy a defer-szkriptek betöltsenek */
 setTimeout(() => {
   if (window.Online && Online.hasKey && Online.hasKey()) {
-    Online.init().then(ok => { if (ok) Online.pushProfile(state); });
+    Online.init().then(ok => {
+      if (ok) {
+        Online.pushProfile(state);
+        if (state.clanId) Online.getMyClan(state.clanId).then(c => { if (c) clanLevelCache = c.level || 1; });
+      }
+    });
   }
 }, 800);
 

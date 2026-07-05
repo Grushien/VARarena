@@ -123,6 +123,22 @@ window.Online = (function () {
       return true;
     } catch (e) { return false; }
   }
+  async function donateToClan(clanId, amount) {
+    if (guard()) return false;
+    try {
+      const { error } = await client.rpc('donate_to_clan', { p_clan_id: clanId, p_amount: amount });
+      if (error) throw error;
+      return true;
+    } catch (e) { console.warn('[Online] adomány hiba:', e.message || e); return false; }
+  }
+  async function upgradeClan(clanId) {
+    if (guard()) return { error: 'offline' };
+    try {
+      const { data, error } = await client.rpc('upgrade_clan', { p_clan_id: clanId });
+      if (error) throw error;
+      return { level: data };
+    } catch (e) { return { error: e.message || String(e) }; }
+  }
 
   /* ---------------- LEVELEK ---------------- */
   async function sendMail(toId, toName, body, kind, gold, item) {
@@ -225,7 +241,7 @@ window.Online = (function () {
 
   return {
     init, pushProfile, leaderboard,
-    createClan, getMyClan, clanMembers, findClanByTag, setMyClan,
+    createClan, getMyClan, clanMembers, findClanByTag, setMyClan, donateToClan, upgradeClan,
     sendMail, inbox, claimMail, findChampionByName,
     marketList, myListings, createListing, cancelListing, buyListing,
     isReady: () => ready,
