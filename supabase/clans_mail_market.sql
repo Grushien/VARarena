@@ -66,7 +66,10 @@ create policy "market_insert" on public.market_listings for insert with check (s
 drop policy if exists "market_seller_update" on public.market_listings;
 create policy "market_seller_update" on public.market_listings for update using (seller_id = auth.uid());
 drop policy if exists "market_buyer_claim" on public.market_listings;
-create policy "market_buyer_claim" on public.market_listings for update using (sold = false);
+create policy "market_buyer_claim" on public.market_listings for update
+  using (sold = false) with check (sold = true and buyer_id = auth.uid());
+drop policy if exists "market_seller_delete" on public.market_listings;
+create policy "market_seller_delete" on public.market_listings for delete using (seller_id = auth.uid());
 create index if not exists market_open_idx on public.market_listings (sold, clan_id);
 
 -- Megjegyzés: a piac "vevő lezárja a sold=false sort" mintát használ (atomi race-védelem),

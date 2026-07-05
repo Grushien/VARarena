@@ -326,6 +326,9 @@ window.I18N = (function () {
     'FEJLESZTÉS (': 'UPGRADE (', '// KLÁN-PIAC': '// CLAN MARKET',
     'Nincs klán-piaci kínálat.': 'No items listed on the clan market.',
     'Minden ritkaság': 'All rarities', 'Minden kategória': 'All categories',
+    'FRISSÍTÉS': 'REFRESH', 'Frissítés...': 'Refreshing...',
+    'Ez a hirdetés már nem elérhető.': 'This listing is no longer available.',
+    'Nincs elég aranyad! (': 'Not enough gold! (', ' kell)': ' needed)',
   };
 
   const keys = Object.keys(DICT).sort((a, b) => b.length - a.length);

@@ -205,8 +205,11 @@ window.Online = (function () {
   }
   async function cancelListing(id) {
     if (guard()) return false;
-    try { await client.from('market_listings').delete().eq('id', id).eq('seller_id', myId); return true; }
-    catch (e) { return false; }
+    try {
+      const { data, error } = await client.from('market_listings').delete().eq('id', id).eq('seller_id', myId).select();
+      if (error) throw error;
+      return !!(data && data.length);
+    } catch (e) { console.warn('[Online] visszavonás hiba:', e.message || e); return false; }
   }
   async function buyListing(listing) {
     if (guard()) return { error: 'offline' };

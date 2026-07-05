@@ -18,7 +18,7 @@
 <script src="js/cgsdk.js?v=1" defer></script>
 <script src="js/i18n.js?v=1" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
-<script src="js/online.js?v=3" defer></script>
+<script src="js/online.js?v=4" defer></script>
 <style>
   :root {
     --bg: #0c0805;
@@ -1128,7 +1128,8 @@
             <div class="card-list" id="shopList"></div>
           </div>
           <div id="playerPane" style="display:none">
-            <div class="sub">Add el a fölösleges zsákmányod más bajnokoknak, vagy vegyél tőlük olcsóbban!</div>
+            <div class="sub">Add el a fölösleges zsákmányod más bajnokoknak, vagy vegyél tőlük olcsóbban!
+              <button class="act" style="margin-left:8px;font-size:9px;padding:4px 10px" onclick="renderPlayerMarket()">🔄 FRISSÍTÉS</button></div>
             <div id="myListings" style="margin-bottom:12px"></div>
             <div id="playerMarket"></div>
           </div>
@@ -1832,7 +1833,8 @@ async function renderClan() {
       </div>` : ''}
     </div>
     <div class="divider"></div>
-    <h3 style="font-size:11px;letter-spacing:3px;color:var(--neon2);margin-bottom:10px;text-align:center">// KLÁN-PIAC</h3>
+    <h3 style="font-size:11px;letter-spacing:3px;color:var(--neon2);margin-bottom:10px;text-align:center">// KLÁN-PIAC
+      <button class="act" style="font-size:9px;padding:3px 8px;margin-left:8px" onclick="renderClanMarket('${clan.id}')">🔄</button></h3>
     <div class="card-list" id="clanMarketList"></div>
     <div class="divider"></div>
     <button class="act pink" onclick="game.leaveClanUi()">KILÉPÉS A KLÁNBÓL</button>`;
@@ -2932,10 +2934,12 @@ window.game = {
   },
   filterMarket() { renderMarketCards(); },
   async buyMarketUi(id) {
-    const listing = lastMarketListings.find(l => l.id === id);
-    if (!listing || state.credits < listing.price) return;
+    let listing = lastMarketListings.find(l => l.id === id);
+    if (!listing) { toast('Frissítés...'); await renderPlayerMarket(); listing = lastMarketListings.find(l => l.id === id); }
+    if (!listing) { toast('Ez a hirdetés már nem elérhető.'); return; }
+    if (state.credits < listing.price) { toast('Nincs elég aranyad! (' + listing.price + '🪙 kell)'); return; }
     const res = await Online.buyListing(listing);
-    if (res.error) { toast(res.error === 'mar_elkelt' ? 'Már elkelt!' : 'Nem sikerült.'); renderPlayerMarket(); return; }
+    if (res.error) { toast(res.error === 'mar_elkelt' ? 'Már elkelt!' : 'Nem sikerült: ' + res.error); renderPlayerMarket(); return; }
     state.credits -= listing.price;
     if (state.inventory.length < 15) state.inventory.push(listing.item);
     save(); renderHeader();
@@ -2943,10 +2947,12 @@ window.game = {
     renderPlayerMarket();
   },
   async buyClanMarketUi(id) {
-    const listing = lastClanMarketListings.find(l => l.id === id);
-    if (!listing || state.credits < listing.price) return;
+    let listing = lastClanMarketListings.find(l => l.id === id);
+    if (!listing) { toast('Frissítés...'); await renderClanMarket(state.clanId); listing = lastClanMarketListings.find(l => l.id === id); }
+    if (!listing) { toast('Ez a hirdetés már nem elérhető.'); return; }
+    if (state.credits < listing.price) { toast('Nincs elég aranyad! (' + listing.price + '🪙 kell)'); return; }
     const res = await Online.buyListing(listing);
-    if (res.error) { toast(res.error === 'mar_elkelt' ? 'Már elkelt!' : 'Nem sikerült.'); renderClanMarket(state.clanId); return; }
+    if (res.error) { toast(res.error === 'mar_elkelt' ? 'Már elkelt!' : 'Nem sikerült: ' + res.error); renderClanMarket(state.clanId); return; }
     state.credits -= listing.price;
     if (state.inventory.length < 15) state.inventory.push(listing.item);
     save(); renderHeader();
