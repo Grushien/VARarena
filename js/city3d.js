@@ -51,7 +51,11 @@ window.City3D = (function () {
   /* ---- GLB betöltő + cache ---- */
   const gltfCache = {};
   function loadModel(url) {
-    if (!gltfCache[url]) gltfCache[url] = new Promise((res, rej) => new THREE.GLTFLoader().load(url, res, undefined, rej));
+    if (!gltfCache[url]) {
+      const loader = new THREE.GLTFLoader();
+      if (window.MeshoptDecoder) loader.setMeshoptDecoder(MeshoptDecoder);
+      gltfCache[url] = new Promise((res, rej) => loader.load(url, res, undefined, rej));
+    }
     return gltfCache[url];
   }
   function placeModel(def, onReady) {

@@ -8,6 +8,67 @@
 window.Battle3D = (function () {
   const LOC_ACCENT = { rust: 0x7dc95e, market: 0xffd24d, chrome: 0x8fb8e8, orbit: 0xa06bd6, pvp: 0xd8442e };
 
+  /* ---- helyszín-díszlet (KayKit, CC0 — models/env/LICENSE-*.txt) ---- */
+  const PROP_SETS = {
+    rust: [ // Sárfészek — mocsaras falu széle
+      { url: 'models/env/swamp/Tree_Bare_1_A_Color1.glb', pos: [-7, 0, -3], rot: 0.3, scale: 1.3 },
+      { url: 'models/env/swamp/Tree_Bare_2_B_Color1.glb', pos: [7, 0, -3.3], rot: -0.4, scale: 1.4 },
+      { url: 'models/env/swamp/Rock_2_C_Color1.glb', pos: [-4.5, 0, -1.8], rot: 1.1 },
+      { url: 'models/env/swamp/Rock_1_D_Color1.glb', pos: [4.7, 0, -2], rot: 2.4 },
+      { url: 'models/env/swamp/Bush_1_C_Color1.glb', pos: [-6, 0, 0.6], rot: 0.7 },
+      { url: 'models/env/swamp/Grass_1_A_Color1.glb', pos: [6, 0, 0.9], rot: 1.8 },
+    ],
+    market: [ // Piactéri Porond — kereskedő-standok
+      { url: 'models/env/dungeon/table_long_decorated_A.glb', pos: [-6.5, 0, -3], rot: 0.2 },
+      { url: 'models/env/dungeon/crates_stacked.glb', pos: [6.5, 0, -3], rot: -0.3 },
+      { url: 'models/env/dungeon/barrel_large.glb', pos: [-4.4, 0, -1.6] },
+      { url: 'models/env/dungeon/banner_patternA_yellow.glb', pos: [-3.2, 1.4, -5.15] },
+      { url: 'models/env/dungeon/banner_patternA_yellow.glb', pos: [3.2, 1.4, -5.15], rot: Math.PI },
+    ],
+    chrome: [ // Várudvar — páncélos veteránok földje
+      { url: 'models/env/dungeon/wall_gated.glb', pos: [-7.6, 0, -5], rot: 0.15 },
+      { url: 'models/env/dungeon/pillar_decorated.glb', pos: [-5, 0, -4.3] },
+      { url: 'models/env/dungeon/pillar_decorated.glb', pos: [5, 0, -4.3] },
+      { url: 'models/env/dungeon/banner_shield_blue.glb', pos: [-3, 1.5, -5.15] },
+      { url: 'models/env/dungeon/banner_shield_blue.glb', pos: [3, 1.5, -5.15], rot: Math.PI },
+      { url: 'models/env/dungeon/column.glb', pos: [7.6, 0, -4.5] },
+    ],
+    orbit: [ // Sárkányverem — ősi kazamata
+      { url: 'models/env/dungeon/wall_broken.glb', pos: [-8, 0, -5.4], rot: 0.1 },
+      { url: 'models/env/dungeon/column.glb', pos: [-6, 0, -4] },
+      { url: 'models/env/dungeon/column.glb', pos: [6, 0, -4] },
+      { url: 'models/env/dungeon/torch_mounted.glb', pos: [-3.5, 1.6, -5.1] },
+      { url: 'models/env/dungeon/torch_mounted.glb', pos: [3.5, 1.6, -5.1], rot: Math.PI },
+      { url: 'models/env/dungeon/rubble_large.glb', pos: [-4.5, 0, -1.5], rot: 0.9 },
+      { url: 'models/env/dungeon/chest_gold.glb', pos: [4.2, 0, -2.1], rot: -0.5 },
+    ],
+    pvp: [ // Párbaj — bajnoki porond
+      { url: 'models/env/hex/flag_red.glb', pos: [-6, 0, -4] },
+      { url: 'models/env/hex/flag_blue.glb', pos: [6, 0, -4] },
+      { url: 'models/env/hex/tent.glb', pos: [-7.2, 0, -1.3], rot: 0.6 },
+      { url: 'models/env/hex/target.glb', pos: [7, 0, -1], rot: -0.8 },
+      { url: 'models/env/hex/weaponrack.glb', pos: [5, 0, -2.4], rot: 0.3 },
+    ],
+  };
+  let locProps = null, locPropsGen = 0;
+  function buildLocationProps(locId) {
+    const gen = ++locPropsGen;
+    if (locProps) disposeGroup(locProps);
+    locProps = new THREE.Group();
+    scene.add(locProps);
+    const set = PROP_SETS[locId] || PROP_SETS.pvp;
+    for (const p of set) {
+      loadGLTF(p.url).then(gltf => {
+        if (gen !== locPropsGen) return;
+        const obj = gltf.scene.clone();
+        obj.position.set(p.pos[0], p.pos[1], p.pos[2]);
+        if (p.rot) obj.rotation.y = p.rot;
+        if (p.scale) obj.scale.setScalar(p.scale);
+        locProps.add(obj);
+      }).catch(() => {});
+    }
+  }
+
   /* Választható játékos-karakterek (a mentés-kompatibilitás miatt az id-k maradnak) */
   const SKINS = [
     { id: 'ronin',     name: 'Lovag',  desc: 'Kard és pajzs — a porond veteránja',  body: 0x3a4a6e, accent: 0x8fb8e8, crest: 0xd8442e, weapon: 'katana', build: 'humanoid' },
@@ -43,7 +104,9 @@ window.Battle3D = (function () {
   function loadGLTF(url) {
     if (typeof THREE === 'undefined' || !THREE.GLTFLoader) return Promise.reject(new Error('no loader'));
     if (!gltfCache[url]) {
-      gltfCache[url] = new Promise((res, rej) => new THREE.GLTFLoader().load(url, res, undefined, rej));
+      const loader = new THREE.GLTFLoader();
+      if (window.MeshoptDecoder) loader.setMeshoptDecoder(MeshoptDecoder);
+      gltfCache[url] = new Promise((res, rej) => loader.load(url, res, undefined, rej));
     }
     return gltfCache[url];
   }
@@ -1135,6 +1198,7 @@ window.Battle3D = (function () {
       grid.material.color = new THREE.Color(accent);
       for (const capM of backdropCaps) capM.color.setHex(accent);
       if (padE) padE.material.color.setHex(accent);
+      buildLocationProps((opts && opts.locId) || 'pvp');
 
       if (bots.player) { bots.player.disposed = true; disposeGroup(bots.player.g); }
       if (bots.enemy) { bots.enemy.disposed = true; disposeGroup(bots.enemy.g); }

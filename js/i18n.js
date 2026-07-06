@@ -8,7 +8,14 @@
 ============================================================ */
 window.I18N = (function () {
   const KEY = 'va_lang';
-  let lang = localStorage.getItem(KEY) || 'hu';
+  let lang = localStorage.getItem(KEY) || null;
+
+  function detectLang() {
+    let locale = null;
+    if (window.CG && CG.available()) locale = CG.locale();
+    if (!locale) locale = navigator.language || navigator.userLanguage || 'en';
+    return /^hu\b/i.test(locale) ? 'hu' : 'en';
+  }
 
   const DICT = {
     // --- márka / cím ---
@@ -198,6 +205,8 @@ window.I18N = (function () {
     'Hosszú menet — garantált zsákmánnyal.': 'A long march — guaranteed loot.',
     'Garantált tárgy!': 'Guaranteed item!', 'Tárgyesély: ': 'Item chance: ',
     'INDÍTÁS': 'LAUNCH', 'PORTYA VÉGE': 'EXPEDITION COMPLETE',
+    '🎬 -10 PERC VIDEÓÉRT': '🎬 -10 MIN FOR VIDEO',
+    '🎬 -10 perc a portya idejéből!': '🎬 -10 minutes off the expedition time!',
 
     // --- ispotály / ételek ---
     'Percenként ': 'Every minute, ', ' magától visszatölt — itt étellel és gyógyítással gyorsíthatsz.':
@@ -307,10 +316,21 @@ window.I18N = (function () {
     'KÜLDÉS': 'SEND', 'ÁTVESZ': 'CLAIM', 'olvasva': 'read', 'Üres a postaládád.': 'Your inbox is empty.',
     'Nincs online kapcsolat': 'No online connection', 'a levelezéshez internet szükséges': 'internet is required for mail',
     'Még nem vagy egyik klánnak sem a tagja.': "You're not a member of any clan yet.",
-    'ÚJ KLÁN ALAPÍTÁSA': 'FOUND A NEW CLAN', 'CSATLAKOZÁS': 'JOIN',
+    'ÚJ KLÁN ALAPÍTÁSA': 'FOUND A NEW CLAN', 'CSATLAKOZÁS NÉV SZERINT': 'JOIN BY NAME', 'CSATLAKOZÁS': 'JOIN',
     'Klán neve...': 'Clan name...', 'Rövid jelzés (pl. VAS)': 'Short tag (e.g. IRON)',
     'ALAPÍTÁS': 'FOUND', 'Klán neve vagy jelzése...': 'Clan name or tag...',
     'KILÉPÉS A KLÁNBÓL': 'LEAVE CLAN', ' tag': ' members',
+    '// ELÉRHETŐ KLÁNOK': '// AVAILABLE CLANS',
+    'Még nincs egyetlen klán sem — legyél te az első!': 'No clans yet — be the first!',
+    'jutalom-szint (+': 'reward level (+', '% arany/XP)': '% gold/XP)',
+    'életerő-szint (+': 'health level (+',
+    'hírnév-szint (+': 'fame level (+', '% hírnév)': '% fame)',
+    '💰 JUTALOM FEJLESZTÉSE': '💰 REWARD UPGRADE',
+    '❤️ ÉLETERŐ FEJLESZTÉSE': '❤️ HEALTH UPGRADE',
+    '⭐ HÍRNÉV FEJLESZTÉSE': '⭐ FAME UPGRADE',
+    '💰. Minden szint +2% arany/XP jutalmat ad a tagoknak.': '💰. Each level gives +2% gold/XP to all members.',
+    '💰. Minden szint +2% maximális életerőt ad a tagoknak.': '💰. Each level gives +2% max HP to all members.',
+    '💰. Minden szint +2% hírnév-szerzést ad a tagoknak.': '💰. Each level gives +2% fame gain to all members.',
     'KERESKEDŐ': 'MERCHANT', 'JÁTÉKOS PIAC': 'PLAYER MARKET',
     'Add el a fölösleges zsákmányod más bajnokoknak, vagy vegyél tőlük olcsóbban!':
       'Sell your spare loot to other champions, or buy from them for less!',
@@ -410,8 +430,14 @@ window.I18N = (function () {
     setBtn();
   }
 
-  window.addEventListener('load', () => {
+  window.addEventListener('load', async () => {
     startObserving();
+    if (!lang) {
+      if (window.CG && CG.ready) {
+        try { await Promise.race([CG.ready, new Promise(r => setTimeout(r, 1500))]); } catch (e) {}
+      }
+      lang = detectLang();
+    }
     document.documentElement.lang = lang === 'en' ? 'en' : 'hu';
     if (lang === 'en') applyAll();
     setBtn();

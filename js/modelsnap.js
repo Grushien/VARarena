@@ -33,7 +33,11 @@ window.ModelSnap = (function () {
   }
 
   function load(url) {
-    if (!loaders[url]) loaders[url] = new Promise((res, rej) => new THREE.GLTFLoader().load(url, res, undefined, rej));
+    if (!loaders[url]) {
+      const loader = new THREE.GLTFLoader();
+      if (window.MeshoptDecoder) loader.setMeshoptDecoder(MeshoptDecoder);
+      loaders[url] = new Promise((res, rej) => loader.load(url, res, undefined, rej));
+    }
     return loaders[url];
   }
 

@@ -131,13 +131,21 @@ window.Online = (function () {
       return true;
     } catch (e) { console.warn('[Online] adomány hiba:', e.message || e); return false; }
   }
-  async function upgradeClan(clanId) {
+  async function upgradeClan(clanId, track) {
     if (guard()) return { error: 'offline' };
     try {
-      const { data, error } = await client.rpc('upgrade_clan', { p_clan_id: clanId });
+      const { data, error } = await client.rpc('upgrade_clan_track', { p_clan_id: clanId, p_track: track || 'gold' });
       if (error) throw error;
       return { level: data };
     } catch (e) { return { error: e.message || String(e) }; }
+  }
+  async function listClans(limit) {
+    const g = guard([]); if (g !== null) return g;
+    try {
+      const { data, error } = await client.rpc('list_clans', { p_limit: limit || 30 });
+      if (error) throw error;
+      return data || [];
+    } catch (e) { console.warn('[Online] klánlista hiba:', e.message || e); return []; }
   }
 
   /* ---------------- LEVELEK ---------------- */
@@ -244,7 +252,7 @@ window.Online = (function () {
 
   return {
     init, pushProfile, leaderboard,
-    createClan, getMyClan, clanMembers, findClanByTag, setMyClan, donateToClan, upgradeClan,
+    createClan, getMyClan, clanMembers, findClanByTag, setMyClan, donateToClan, upgradeClan, listClans,
     sendMail, inbox, claimMail, findChampionByName,
     marketList, myListings, createListing, cancelListing, buyListing,
     isReady: () => ready,
