@@ -8,46 +8,58 @@
 window.Battle3D = (function () {
   const LOC_ACCENT = { rust: 0x7dc95e, market: 0xffd24d, chrome: 0x8fb8e8, orbit: 0xa06bd6, pvp: 0xd8442e };
 
-  /* ---- helyszín-díszlet (KayKit, CC0 — models/env/LICENSE-*.txt) ---- */
+  /* ---- helyszín-díszlet (KayKit, CC0 — models/env/LICENSE-*.txt) ----
+     Megjegyzés: a Dungeon Remastered csomag már ember-léptékű, a Forest
+     Nature fái natívan túl nagyok (5+ egység), a Hexagon Pack viszont
+     tábla-játék léptékű (kb. 0.2-0.5 egység) — ezért csomagonként eltérő
+     scale-korrekció kell. A pozíciók a kamera (fov 40°, ~1.64 aspect)
+     látómezejéhez igazított, ellenőrzött "sávokban" vannak (BACK/MID/NEAR/
+     WALL), hogy semmi ne essen a képkeretén kívülre. */
+  const SLOT = {
+    BACK_L: [-4.5, 0, -5.3], BACK_R: [4.5, 0, -5.3],
+    MID_L: [-3.8, 0, -3.2], MID_R: [3.8, 0, -3.2],
+    NEAR_L: [-3.6, 0, -2.3], NEAR_R: [3.6, 0, -2.3],
+    WALL_L: [-2.6, 1.5, -5.15], WALL_R: [2.6, 1.5, -5.15],
+  };
   const PROP_SETS = {
     rust: [ // Sárfészek — mocsaras falu széle
-      { url: 'models/env/swamp/Tree_Bare_1_A_Color1.glb', pos: [-7, 0, -3], rot: 0.3, scale: 1.3 },
-      { url: 'models/env/swamp/Tree_Bare_2_B_Color1.glb', pos: [7, 0, -3.3], rot: -0.4, scale: 1.4 },
-      { url: 'models/env/swamp/Rock_2_C_Color1.glb', pos: [-4.5, 0, -1.8], rot: 1.1 },
-      { url: 'models/env/swamp/Rock_1_D_Color1.glb', pos: [4.7, 0, -2], rot: 2.4 },
-      { url: 'models/env/swamp/Bush_1_C_Color1.glb', pos: [-6, 0, 0.6], rot: 0.7 },
-      { url: 'models/env/swamp/Grass_1_A_Color1.glb', pos: [6, 0, 0.9], rot: 1.8 },
+      { url: 'models/env/swamp/Tree_Bare_1_A_Color1.glb', pos: SLOT.BACK_L, rot: 0.3, scale: 1.0 },
+      { url: 'models/env/swamp/Tree_Bare_2_B_Color1.glb', pos: SLOT.BACK_R, rot: -0.4, scale: 0.55 },
+      { url: 'models/env/swamp/Rock_2_C_Color1.glb', pos: SLOT.NEAR_L, rot: 1.1 },
+      { url: 'models/env/swamp/Rock_1_D_Color1.glb', pos: SLOT.NEAR_R, rot: 2.4 },
+      { url: 'models/env/swamp/Bush_1_C_Color1.glb', pos: SLOT.MID_L, rot: 0.7 },
+      { url: 'models/env/swamp/Grass_1_A_Color1.glb', pos: SLOT.MID_R, rot: 1.8, scale: 1.5 },
     ],
     market: [ // Piactéri Porond — kereskedő-standok
-      { url: 'models/env/dungeon/table_long_decorated_A.glb', pos: [-6.5, 0, -3], rot: 0.2 },
-      { url: 'models/env/dungeon/crates_stacked.glb', pos: [6.5, 0, -3], rot: -0.3 },
-      { url: 'models/env/dungeon/barrel_large.glb', pos: [-4.4, 0, -1.6] },
-      { url: 'models/env/dungeon/banner_patternA_yellow.glb', pos: [-3.2, 1.4, -5.15] },
-      { url: 'models/env/dungeon/banner_patternA_yellow.glb', pos: [3.2, 1.4, -5.15], rot: Math.PI },
+      { url: 'models/env/dungeon/table_long_decorated_A.glb', pos: SLOT.MID_L, rot: 0.2 },
+      { url: 'models/env/dungeon/crates_stacked.glb', pos: SLOT.MID_R, rot: -0.3 },
+      { url: 'models/env/dungeon/barrel_large.glb', pos: SLOT.NEAR_L },
+      { url: 'models/env/dungeon/banner_patternA_yellow.glb', pos: SLOT.WALL_L, scale: 0.9 },
+      { url: 'models/env/dungeon/banner_patternA_yellow.glb', pos: SLOT.WALL_R, rot: Math.PI, scale: 0.9 },
     ],
     chrome: [ // Várudvar — páncélos veteránok földje
-      { url: 'models/env/dungeon/wall_gated.glb', pos: [-7.6, 0, -5], rot: 0.15 },
-      { url: 'models/env/dungeon/pillar_decorated.glb', pos: [-5, 0, -4.3] },
-      { url: 'models/env/dungeon/pillar_decorated.glb', pos: [5, 0, -4.3] },
-      { url: 'models/env/dungeon/banner_shield_blue.glb', pos: [-3, 1.5, -5.15] },
-      { url: 'models/env/dungeon/banner_shield_blue.glb', pos: [3, 1.5, -5.15], rot: Math.PI },
-      { url: 'models/env/dungeon/column.glb', pos: [7.6, 0, -4.5] },
+      { url: 'models/env/dungeon/wall_gated.glb', pos: SLOT.BACK_L, rot: 0.15 },
+      { url: 'models/env/dungeon/pillar_decorated.glb', pos: SLOT.MID_L },
+      { url: 'models/env/dungeon/pillar_decorated.glb', pos: SLOT.MID_R },
+      { url: 'models/env/dungeon/banner_shield_blue.glb', pos: SLOT.WALL_L, scale: 0.9 },
+      { url: 'models/env/dungeon/banner_shield_blue.glb', pos: SLOT.WALL_R, rot: Math.PI, scale: 0.9 },
+      { url: 'models/env/dungeon/column.glb', pos: SLOT.BACK_R, scale: 1.6 },
     ],
     orbit: [ // Sárkányverem — ősi kazamata
-      { url: 'models/env/dungeon/wall_broken.glb', pos: [-8, 0, -5.4], rot: 0.1 },
-      { url: 'models/env/dungeon/column.glb', pos: [-6, 0, -4] },
-      { url: 'models/env/dungeon/column.glb', pos: [6, 0, -4] },
-      { url: 'models/env/dungeon/torch_mounted.glb', pos: [-3.5, 1.6, -5.1] },
-      { url: 'models/env/dungeon/torch_mounted.glb', pos: [3.5, 1.6, -5.1], rot: Math.PI },
-      { url: 'models/env/dungeon/rubble_large.glb', pos: [-4.5, 0, -1.5], rot: 0.9 },
-      { url: 'models/env/dungeon/chest_gold.glb', pos: [4.2, 0, -2.1], rot: -0.5 },
+      { url: 'models/env/dungeon/wall_broken.glb', pos: SLOT.BACK_L, rot: 0.1 },
+      { url: 'models/env/dungeon/column.glb', pos: SLOT.MID_L, scale: 1.6 },
+      { url: 'models/env/dungeon/column.glb', pos: SLOT.MID_R, scale: 1.6 },
+      { url: 'models/env/dungeon/torch_mounted.glb', pos: SLOT.WALL_L, scale: 1.2 },
+      { url: 'models/env/dungeon/torch_mounted.glb', pos: SLOT.WALL_R, rot: Math.PI, scale: 1.2 },
+      { url: 'models/env/dungeon/rubble_large.glb', pos: SLOT.NEAR_L, rot: 0.9, scale: 0.4 },
+      { url: 'models/env/dungeon/chest_gold.glb', pos: SLOT.NEAR_R, rot: -0.5 },
     ],
     pvp: [ // Párbaj — bajnoki porond
-      { url: 'models/env/hex/flag_red.glb', pos: [-6, 0, -4] },
-      { url: 'models/env/hex/flag_blue.glb', pos: [6, 0, -4] },
-      { url: 'models/env/hex/tent.glb', pos: [-7.2, 0, -1.3], rot: 0.6 },
-      { url: 'models/env/hex/target.glb', pos: [7, 0, -1], rot: -0.8 },
-      { url: 'models/env/hex/weaponrack.glb', pos: [5, 0, -2.4], rot: 0.3 },
+      { url: 'models/env/hex/flag_red.glb', pos: SLOT.BACK_L, scale: 6 },
+      { url: 'models/env/hex/flag_blue.glb', pos: SLOT.BACK_R, scale: 6 },
+      { url: 'models/env/hex/tent.glb', pos: SLOT.MID_L, rot: 0.6, scale: 3 },
+      { url: 'models/env/hex/target.glb', pos: SLOT.NEAR_R, rot: -0.8, scale: 4 },
+      { url: 'models/env/hex/weaponrack.glb', pos: SLOT.NEAR_L, rot: 0.3, scale: 5 },
     ],
   };
   let locProps = null, locPropsGen = 0;
@@ -100,13 +112,40 @@ window.Battle3D = (function () {
     death:   [/^death_a$/i, /death/i],
     victory: [/cheer/i, /victory|wave/i, /interact/i],
   };
+  /* A KayKit karakter-GLB-k EGYSZERRE tartalmazzák egy kaszt összes fegyverét
+     és pajzsát (külön mesh-ek a kéz-csontokon) — ezért látszott "több kard".
+     Kasztonként csak EGY fegyvert (+ Lovagnál egy pajzsot) tartunk meg, a többi
+     fegyver-kategóriás mesh-t a szülő-node neve alapján elrejtjük. A csontváz-
+     modellekben nincs fegyver-mesh, azokat ez nem érinti. */
+  /* Kasztonként a MEGTARTANDÓ fegyver (a többi fegyver-mesh rejtve). A leíró
+     azonosító a nyers modellben hol a mesh nevén (Lovag: "1H_Sword"), hol a
+     szülő-node nevén (Barbár/Mágus/Vadász: "2H_Axe" stb.) van — ezért mindkettőt
+     nézzük. A rejtést a KÖZÖS (cache-elt) nyers jeleneten végezzük egyszer,
+     mielőtt klónoznánk, mert klónozáskor a szülő már a kéz-csont lesz. */
+  const KEEP_RX = {
+    'models/Knight.glb':       /^1H_Sword$|Round_Shield/i,
+    'models/Barbarian.glb':    /2H_Axe/i,
+    'models/Mage.glb':         /2H_Staff/i,
+    'models/Rogue_Hooded.glb': /2H_Crossbow/i,
+  };
+  const WEAPON_RX = /sword|axe|staff|wand|spellbook|crossbow|bow|knife|dagger|mace|shield|mug|throwable|offhand|quiver/i;
+  function hideExtraWeapons(root, url) {
+    const keep = KEEP_RX[url];
+    if (!keep) return;
+    root.traverse(o => {
+      if (!o.isMesh) return;
+      const n = o.name || '', pn = (o.parent && o.parent.name) || '';
+      if ((WEAPON_RX.test(n) || WEAPON_RX.test(pn)) && !keep.test(n) && !keep.test(pn)) o.visible = false;
+    });
+  }
+
   const gltfCache = {};
   function loadGLTF(url) {
     if (typeof THREE === 'undefined' || !THREE.GLTFLoader) return Promise.reject(new Error('no loader'));
     if (!gltfCache[url]) {
       const loader = new THREE.GLTFLoader();
       if (window.MeshoptDecoder) loader.setMeshoptDecoder(MeshoptDecoder);
-      gltfCache[url] = new Promise((res, rej) => loader.load(url, res, undefined, rej));
+      gltfCache[url] = new Promise((res, rej) => loader.load(url, g => { hideExtraWeapons(g.scene, url); res(g); }, undefined, rej));
     }
     return gltfCache[url];
   }
@@ -131,7 +170,7 @@ window.Battle3D = (function () {
     b.current = action;
     return action;
   }
-  function applyModel(b, gltf, targetH) {
+  function applyModel(b, gltf, targetH, url) {
     if (b.disposed || b.dead || !THREE.SkeletonUtils) return;
     const clone = THREE.SkeletonUtils.clone(gltf.scene);
     const bbox = new THREE.Box3().setFromObject(clone);
@@ -154,7 +193,9 @@ window.Battle3D = (function () {
         o.frustumCulled = false;
         b.fadeMats.push(o.material);
         if (b.tint !== undefined && o.material.color) {
-          o.material.color.multiply(new THREE.Color().setHSL(b.tint, 0.35, 0.75));
+          // erős szín-eltolás: az emberi ellenfelek NE a játékos karakterére hasonlítsanak
+          const hsl = {}; o.material.color.getHSL(hsl);
+          o.material.color.setHSL((hsl.h + b.tint) % 1, Math.min(1, hsl.s + 0.12), hsl.l);
         }
         if (o.material.emissive) b.phongs.push(o.material);
       }
@@ -220,7 +261,7 @@ window.Battle3D = (function () {
     if (!stage) return false;
 
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, Math.min(window.innerWidth, window.innerHeight) < 600 ? 1.5 : 2));
     stage.appendChild(renderer.domElement);
 
     scene = new THREE.Scene();
@@ -622,27 +663,44 @@ window.Battle3D = (function () {
     const mk = MODEL_MAP[opts.modelKey];
     if (mk) {
       loadGLTF(mk.url)
-        .then(gl => applyModel(bot, gl, mk.h))
+        .then(gl => applyModel(bot, gl, mk.h, mk.url))
         .catch(() => {});
     }
     return bot;
   }
 
-  /* több modell-változat: a név hash-e dönti el, melyik modellt kapja az ellenfél */
-  const ENEMY_POOLS = {
-    humanoid: ['humanoid', 'zsoldos', 'bruiser'],
-    heavy:    ['heavy', 'ronin', 'bruiser'],
-    drone:    ['drone', 'netrunner'],
-    beast:    ['beast'],
-  };
   function nameHash(nm) {
     let h = 0; nm = nm || '';
     for (let i = 0; i < nm.length; i++) h = (h * 31 + nm.charCodeAt(i)) >>> 0;
     return h;
   }
-  function pickEnemyModel(variant, name) {
-    const pool = ENEMY_POOLS[variant] || ['humanoid'];
-    return pool[nameHash(name) % pool.length];
+
+  /* Az ellenfél KINÉZETE a hangulatához igazodik:
+       - Élőhalott (💀 ☠️ 👻) → csontváz-modell (marad csontváz).
+       - Fenevad (🐀🐺🐍🐕🕷️🐉) → csontváz-poronty (Skeleton_Minion).
+       - Ember (kard/íj/mágus stb.) → JÁTÉKOS-karaktermodell, de erős
+         szín-eltolással (tint), hogy NE a játékos kinézete legyen.
+     Visszaad: { variant (rig/animáció), modelKey (MODEL_MAP), tint? }. */
+  const HUMAN_POOL = ['ronin', 'bruiser', 'zsoldos'];
+  function enemyAppearance(emoji, name) {
+    emoji = emoji || '';
+    const h = nameHash(name);
+    if (emoji === '☠️') return { variant: 'drone', modelKey: 'drone' };        // csontváz-mágus
+    if ('💀👻'.indexOf(emoji) !== -1)                                          // csontváz / lidérc
+      return (h % 2) ? { variant: 'heavy', modelKey: 'heavy' }
+                     : { variant: 'humanoid', modelKey: 'humanoid' };
+    if ('🐀🐺🐍🐕🕷️🐉'.indexOf(emoji) !== -1)
+      return { variant: 'beast', modelKey: 'beast' };
+    // ---- ember: játékos-modell, egyedi szín-eltolással ----
+    const tint = ((h % 300) + 30) / 360;   // 30–330° elforgatás (sose 0 → mindig eltér)
+    if ('🧙🔮🧪'.indexOf(emoji) !== -1) return { variant: 'slim', modelKey: 'netrunner', tint };
+    if (emoji === '🏹')                    return { variant: 'humanoid', modelKey: 'zsoldos', tint };
+    const mk = HUMAN_POOL[h % HUMAN_POOL.length];
+    return { variant: mk === 'bruiser' ? 'heavy' : 'humanoid', modelKey: mk, tint };
+  }
+  function enemyModelUrl(emoji, name) {
+    const mk = MODEL_MAP[enemyAppearance(emoji, name).modelKey];
+    return mk ? mk.url : 'models/Skeleton_Rogue.glb';
   }
 
   function setAnim(bot, type, dur, extra) {
@@ -1183,12 +1241,8 @@ window.Battle3D = (function () {
   ============================================================ */
   return {
     SKINS,
-    variantFor(emoji) {
-      if ('🧙🔮☠️👻🧪'.includes(emoji)) return 'drone';   /* → Skeleton_Mage */
-      if ('🐀🐺🐍🐕🕷️🐉'.includes(emoji)) return 'beast'; /* → Skeleton_Minion */
-      if ('👑⚔️🛡️👹💪'.includes(emoji)) return 'heavy';  /* → Skeleton_Warrior */
-      return 'humanoid';                                   /* → Skeleton_Rogue */
-    },
+    variantFor(emoji) { return enemyAppearance(emoji, '').variant; },
+    enemyModelUrl,
     start(opts) {
       const st = document.getElementById('battleStage');
       if (!init()) { if (st) st.style.display = 'none'; return; }
@@ -1222,16 +1276,16 @@ window.Battle3D = (function () {
           modelKey: enemySkin.id,
         });
       } else {
-        const eVariant = (opts && opts.variant) || 'humanoid';
+        const ap = enemyAppearance(opts && opts.enemyEmoji, opts && opts.enemyName);
         bots.enemy = makeBot('enemy', {
-          variant: eVariant,
+          variant: ap.variant,
           colors: {
-            body: eVariant === 'beast' ? 0x332c3c : eVariant === 'drone' ? 0x262c48 : 0x3c2542,
+            body: ap.variant === 'beast' ? 0x332c3c : ap.variant === 'drone' ? 0x262c48 : 0x3c2542,
             accent,
           },
-          weapon: eVariant === 'heavy' ? 'fists' : 'katana',
-          modelKey: pickEnemyModel(eVariant, opts && opts.enemyName),
-          tint: nameHash(opts && opts.enemyName) % 360 / 360,
+          weapon: ap.variant === 'heavy' ? 'fists' : 'katana',
+          modelKey: ap.modelKey,
+          tint: ap.tint,
         });
       }
       if (opts && opts.enemyScale && opts.enemyScale !== 1) {

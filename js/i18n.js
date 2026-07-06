@@ -23,6 +23,8 @@ window.I18N = (function () {
     'BAJNOKOK KORA': 'AGE OF CHAMPIONS',
     'Bajnokok Kora': 'Age of Champions',
     'ÜDVÖZÖL VASVÁR!': 'WELCOME TO IRONHOLD!',
+    'Fordítsd fekvőbe': 'Rotate to landscape',
+    ' a telefonod ⟳ a jobb élményért!': ' ⟳ for the best experience!',
     'VASVÁR — RANGLISTA': 'IRONHOLD — LEADERBOARD',
     'VASVÁR': 'IRONHOLD',
     'Night District 7': 'Ironhold',

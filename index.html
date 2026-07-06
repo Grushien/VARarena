@@ -11,13 +11,13 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/meshopt_decoder.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js" defer></script>
-<script src="js/battle3d.js?v=9" defer></script>
-<script src="js/city3d.js?v=3" defer></script>
+<script src="js/battle3d.js?v=15" defer></script>
+<script src="js/city3d.js?v=8" defer></script>
 <script src="js/modelsnap.js?v=2" defer></script>
 <script src="js/sfx.js?v=1" defer></script>
 <script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
-<script src="js/cgsdk.js?v=4" defer></script>
-<script src="js/i18n.js?v=4" defer></script>
+<script src="js/cgsdk.js?v=5" defer></script>
+<script src="js/i18n.js?v=5" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
 <script src="js/online.js?v=5" defer></script>
 <style>
@@ -250,116 +250,32 @@
   .city3d-label.hot { transform: translate(-50%, -108%) scale(1.08); border-color: var(--gold); box-shadow: 0 0 14px -4px var(--gold); }
   @media (max-width: 760px) { #cityStage { height: 44vh; } }
 
-  .city3d {
-    position: relative; height: min(62vh, 660px); overflow: hidden;
-    background:
-      radial-gradient(ellipse at 50% -10%, rgba(120,60,220,.25), transparent 55%),
-      radial-gradient(ellipse at 50% 115%, rgba(240,166,60,.12), transparent 60%),
-      linear-gradient(180deg, #0c0822 0%, #070514 60%, #05050d 100%);
-    border: 1px solid var(--border);
-    perspective: 1250px;
-  }
-  .c3-world {
-    --rx: 58deg; --rz: 45deg;
-    position: absolute; left: 50%; top: 50%;
-    width: 720px; height: 720px; margin: -320px 0 0 -360px;
-    transform-style: preserve-3d;
-    transform: rotateX(var(--rx)) rotateZ(var(--rz));
-    transition: transform .35s ease-out;
-  }
-  .c3-ground {
-    position: absolute; inset: 0;
-    background:
-      linear-gradient(90deg, transparent 0 356px, rgba(255,210,77,.35) 356px 358px, transparent 358px),
-      linear-gradient(0deg, transparent 0 356px, rgba(255,210,77,.35) 356px 358px, transparent 358px),
-      linear-gradient(90deg, transparent 0 326px, #04040c 326px 394px, transparent 394px),
-      linear-gradient(0deg, transparent 0 326px, #04040c 326px 394px, transparent 394px),
-      repeating-linear-gradient(0deg, rgba(240,166,60,.09) 0 1px, transparent 1px 48px),
-      repeating-linear-gradient(90deg, rgba(240,166,60,.09) 0 1px, transparent 1px 48px),
-      linear-gradient(180deg, #0d0d1e, #090914);
-    border: 1px solid rgba(240,166,60,.25);
-    box-shadow: 0 0 60px rgba(240,166,60,.12);
-  }
-  .b3 { position: absolute; transform-style: preserve-3d; transition: transform .2s; }
-  .b3.main { cursor: pointer; }
-  .b3.main:hover { transform: translateZ(16px); }
-  .b3.main:hover .f { box-shadow: inset 0 0 30px -4px var(--c); border-color: #fff; }
-  .b3 .f {
-    position: absolute; transform-origin: 0 0;
-    background: linear-gradient(180deg, rgba(26,26,50,.97), rgba(9,9,20,.99));
-    border: 1px solid var(--c);
-    box-shadow: inset 0 0 22px -6px var(--c);
-    transition: box-shadow .2s, border-color .2s;
-  }
-  .b3 .p { position: absolute; transform-style: preserve-3d; }
-  .b3 .f.win {
-    background-image:
-      repeating-linear-gradient(90deg, transparent 0 11px, rgba(6,6,14,.92) 11px 16px),
-      repeating-linear-gradient(0deg, transparent 0 12px, var(--wc) 12px 17px, transparent 17px 25px),
-      linear-gradient(180deg, rgba(26,26,50,.97), rgba(9,9,20,.99));
-  }
-  .b3 .p.glow .f { background: var(--c); box-shadow: 0 0 20px var(--c), inset 0 0 8px rgba(255,255,255,.5); border-color: #fff; }
-  .b3 .p.awn .f { background: linear-gradient(180deg, rgba(255,210,77,.55), rgba(255,210,77,.25)); box-shadow: 0 0 14px -2px var(--c); }
-  .b3 .p.dark .f { background: linear-gradient(180deg, #1c1c30, #101020); border-color: #3a3a5e; box-shadow: none; }
-  .b3 .dr {
-    position: absolute; top: 0; left: 50%; transform: translateX(-50%);
-    width: 30px; height: 36px;
-    background: linear-gradient(0deg, #04040a, #0a0a18);
-    border: 1.5px solid var(--c);
-    box-shadow: 0 0 16px -2px var(--c), inset 0 0 10px rgba(255,255,255,.08);
-  }
-  .b3 .beacon {
-    position: absolute; width: 9px; height: 9px; border-radius: 50%;
-    background: #ff4d4d; box-shadow: 0 0 14px #ff4d4d, 0 0 30px rgba(255,77,77,.6);
-    left: 50%; top: 50%;
-    transform: translateZ(var(--bz, 240px)) rotateZ(calc(-1 * var(--rz, 45deg))) rotateX(calc(-1 * var(--rx, 58deg))) translate(-50%, -50%);
-    animation: blink 2.1s infinite;
-  }
-  @keyframes blink { 0%,45%,100% { opacity: 1; } 50%,95% { opacity: .12; } }
-  .b3 .top {
-    width: var(--w); height: var(--d); transform: translateZ(var(--h));
-    background: linear-gradient(135deg, #1a1a34, #0d0d1e);
-    border: 1.5px solid var(--c);
-    box-shadow: inset 0 0 28px -8px var(--c), 0 0 16px -6px var(--c);
-  }
-  .b3 .n, .b3 .s { width: var(--w); height: var(--h); left: 0; }
-  .b3 .n { top: 0; transform: rotateX(90deg); }
-  .b3 .s { top: var(--d); transform: rotateX(90deg); }
-  .b3 .w3, .b3 .e3 { width: var(--d); height: var(--h); top: 0; }
-  .b3 .w3 { left: 0; transform: rotateZ(90deg) rotateX(90deg); }
-  .b3 .e3 { left: var(--w); transform: rotateZ(90deg) rotateX(90deg); }
-  .b3.deco { opacity: .8; }
-  .b3.deco .f { box-shadow: inset 0 0 14px -6px var(--c); }
-  .b3-label {
-    position: absolute; left: 50%; top: 50%;
-    transform: translateZ(calc(var(--h) + 54px)) rotateZ(calc(-1 * var(--rz, 45deg))) rotateX(calc(-1 * var(--rx, 58deg))) translate(-50%, -50%);
-    font-family: var(--f-head); font-weight: 900; letter-spacing: 2px; font-size: 15px;
-    color: var(--c); text-shadow: 0 0 12px var(--c);
-    background: rgba(5,5,15,.78); border: 1px solid var(--c); padding: 5px 14px;
-    pointer-events: none; white-space: nowrap; text-align: center;
-    box-shadow: 0 0 18px -4px var(--c);
-    clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 50%, calc(100% - 8px) 100%, 8px 100%, 0 50%);
-  }
-  .b3-label small { display: block; font-family: var(--f-body); font-weight: 600; font-size: 10px; color: var(--dim); letter-spacing: 1px; }
-  .c3-fog { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, transparent 60%, rgba(5,5,13,.7)); }
-  .c3-hint { position: absolute; right: 12px; bottom: 8px; font-size: 11px; color: var(--dim); letter-spacing: 1px; pointer-events: none; }
 
-  /* ---- 3D dobogó (ranglista top 3) ---- */
-  .podium { position: relative; height: 265px; margin: 2px 0 12px; perspective: 1100px; overflow: hidden; }
-  .pod-world {
-    position: absolute; left: 50%; top: 50%;
-    width: 320px; height: 320px; margin: -125px 0 0 -160px;
-    transform-style: preserve-3d;
-    transform: rotateX(58deg) rotateZ(45deg);
+  /* ---- kő-dobogó (ranglista top 3) ---- */
+  .podium { display: flex; align-items: flex-end; justify-content: center; gap: 12px; min-height: 210px; margin: 6px 0 16px; }
+  .pod-col { display: flex; flex-direction: column; align-items: center; width: 30%; max-width: 150px; }
+  .pod-fig { text-align: center; margin-bottom: 7px; line-height: 1.25; }
+  .pod-medal { font-size: 26px; display: block; filter: drop-shadow(0 0 6px rgba(255,210,77,.5)); }
+  .pod-name { display: block; font-family: var(--f-head); font-size: 12px; color: var(--text); letter-spacing: .5px; }
+  .pod-fame { display: block; font-size: 11px; color: var(--dim); }
+  .pod-block {
+    width: 100%; position: relative;
+    background: linear-gradient(180deg, #3a3020, #241a0e);
+    border: 1px solid var(--border); border-bottom: none;
+    box-shadow: inset 0 2px 0 rgba(240,166,60,.14), 0 -6px 26px -12px var(--pc);
+    display: flex; justify-content: center;
+    clip-path: polygon(6px 0, calc(100% - 6px) 0, 100% 100%, 0 100%);
   }
-  .pod-ground {
-    position: absolute; inset: 0;
+  .pod-block::before {
+    content: ''; position: absolute; inset: 0; opacity: .5; pointer-events: none;
     background:
-      repeating-linear-gradient(0deg, rgba(240,166,60,.10) 0 1px, transparent 1px 32px),
-      repeating-linear-gradient(90deg, rgba(240,166,60,.10) 0 1px, transparent 1px 32px),
-      linear-gradient(180deg, #0d0d1e, #090914);
-    border: 1px solid rgba(240,166,60,.25);
-    box-shadow: 0 0 40px rgba(240,166,60,.10);
+      repeating-linear-gradient(0deg, transparent 0 21px, rgba(0,0,0,.28) 21px 22px),
+      repeating-linear-gradient(90deg, transparent 0 25px, rgba(0,0,0,.18) 25px 26px);
+  }
+  .pod-rank {
+    position: relative; margin-top: 12px;
+    font-family: var(--f-head); font-weight: 900; font-size: 32px;
+    color: var(--pc); text-shadow: 0 0 14px var(--pc);
   }
 
   /* ---- mini holo-korong (ellenfél-kártyák) ---- */
@@ -522,8 +438,8 @@
   button.act {
     background: linear-gradient(180deg, rgba(240,166,60,.14), rgba(240,166,60,.03));
     border: 1px solid var(--neon); color: var(--neon);
-    padding: 7px 16px; cursor: pointer; font-family: var(--f-head); font-size: 10.5px; letter-spacing: 1.5px;
-    transition: all .15s;
+    padding: 7px 20px; cursor: pointer; font-family: var(--f-head); font-size: 10.5px; letter-spacing: 1.5px;
+    transition: all .15s; white-space: nowrap;
     clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
     text-shadow: 0 0 6px rgba(240,166,60,.5);
   }
@@ -854,15 +770,67 @@
     .layout { grid-template-columns: 1fr; }
     aside { border-right: none; border-bottom: 1px solid var(--border); flex-direction: row; flex-wrap: wrap; gap: 4px; }
     .menu-head { display: none; }
-    .menu-btn { width: auto; margin-bottom: 0; padding: 7px 10px; font-size: 9px; }
+    .menu-btn { width: auto; margin-bottom: 0; padding: 9px 12px; font-size: 9px; min-height: 44px; }
     .side-bars { width: 100%; margin-top: 6px; }
     .side-char { display: none; }
     main { padding: 10px; }
     .tb-logo { width: 100%; justify-content: center; margin: 0 0 4px; }
+    .bag-cell { min-width: 44px; min-height: 44px; }
+    button.act { min-height: 40px; }
   }
+
+  /* ======= MOBIL FEKVŐ: kompakt ikon-oldalmenü, hogy elférjen a rövid magasságba ======= */
+  @media (orientation: landscape) and (max-height: 520px) {
+    .page { padding: 5px 8px; }
+    #topbar { padding: 5px 8px; gap: 4px; }
+    .tb-logo { font-size: 13px; padding: 0 6px; }
+    .tb-logo small { display: none; }
+    .tb-chip { padding: 3px 8px; font-size: 11px; }
+    .tb-chip .ico { font-size: 15px; }
+    .tb-chip .lab { font-size: 7px; }
+
+    .layout { grid-template-columns: 100px 1fr; min-height: 0; }
+    aside {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 3px;
+      align-content: start; padding: 5px;
+      border-right: 1px solid var(--border); border-bottom: none;
+    }
+    .menu-head { display: none; }
+    .menu-btn {
+      flex-direction: column; gap: 1px; width: 100%;
+      padding: 4px 1px; margin-bottom: 0; min-height: 44px;
+      font-size: 6px; letter-spacing: .3px; text-align: center; justify-content: center;
+    }
+    .menu-btn .mi { font-size: 16px; }
+    .badge { position: absolute; top: 2px; right: 3px; margin: 0; font-size: 7px; padding: 0 4px; }
+    .side-bars, .side-char { display: none; }
+    main { padding: 8px; }
+    #cityStage { height: 66vh; }
+    #battleStage { height: 48vh; }
+    .action-btn { min-height: 44px; padding: 8px 6px; }
+    .combat-arena { grid-template-columns: 1fr 1fr; }
+    .vs-badge { display: none; }
+  }
+
+  /* ======= PORTRÉ MOBIL: fekvő-jelzés ======= */
+  #rotateHint { display: none; }
+  @media (max-width: 820px) and (orientation: portrait) {
+    #rotateHint {
+      display: block; position: fixed; left: 0; right: 0; bottom: 0; z-index: 150;
+      background: linear-gradient(180deg, rgba(240,166,60,.14), rgba(10,8,5,.97));
+      border-top: 1px solid var(--neon); color: var(--text);
+      text-align: center; font-family: var(--f-head); font-size: 12px; letter-spacing: 1px;
+      padding: 9px 12px; box-shadow: 0 -4px 20px rgba(0,0,0,.6);
+      animation: rotatePulse 2.4s ease-in-out infinite;
+    }
+    #rotateHint b { color: var(--neon); }
+  }
+  @keyframes rotatePulse { 50% { opacity: .72; } }
 </style>
 </head>
 <body>
+
+<div id="rotateHint">📱 <b>Fordítsd fekvőbe</b> a telefonod ⟳ a jobb élményért!</div>
 
 <div class="result-overlay show" id="titleScreen">
   <div class="result-box" style="max-width:480px">
@@ -925,134 +893,6 @@ document.getElementById('titleEnterBtn').addEventListener('click', function () {
           <div class="city-stage-wrap">
             <div id="cityStage"></div>
             <div id="cityLabels"></div>
-          </div>
-          <div class="city3d" id="city3d" style="display:none">
-            <div class="c3-world" id="c3World">
-              <div class="c3-ground"></div>
-
-              <!-- háttér-tornyok -->
-              <div class="b3 deco" style="--w:64px;--d:64px;--h:210px;--c:#4a3a28;--wc:rgba(240,166,60,.20);left:14px;top:14px">
-                <div class="f top"></div><div class="f n win"></div><div class="f s win"></div><div class="f w3 win"></div><div class="f e3 win"></div>
-              </div>
-              <div class="b3 deco" style="--w:70px;--d:70px;--h:160px;--c:#4a3a28;--wc:rgba(160,107,214,.20);left:636px;top:20px">
-                <div class="f top"></div><div class="f n win"></div><div class="f s win"></div><div class="f w3 win"></div><div class="f e3 win"></div>
-              </div>
-              <div class="b3 deco" style="--w:58px;--d:58px;--h:185px;--c:#4a3a28;--wc:rgba(240,166,60,.16);left:252px;top:16px">
-                <div class="f top"></div><div class="f n win"></div><div class="f s win"></div><div class="f w3 win"></div><div class="f e3 win"></div>
-              </div>
-              <div class="b3 deco" style="--w:70px;--d:70px;--h:190px;--c:#4a3a28;--wc:rgba(216,68,46,.16);left:632px;top:612px">
-                <div class="f top"></div><div class="f n win"></div><div class="f s win"></div><div class="f w3 win"></div><div class="f e3 win"></div>
-              </div>
-              <div class="b3 deco" style="--w:60px;--d:60px;--h:140px;--c:#4a3a28;--wc:rgba(240,166,60,.18);left:20px;top:630px">
-                <div class="f top"></div><div class="f n win"></div><div class="f s win"></div><div class="f w3 win"></div><div class="f e3 win"></div>
-              </div>
-              <div class="b3 deco" style="--w:56px;--d:56px;--h:170px;--c:#4a3a28;--wc:rgba(255,210,77,.16);left:646px;top:238px">
-                <div class="f top"></div><div class="f n win"></div><div class="f s win"></div><div class="f w3 win"></div><div class="f e3 win"></div>
-              </div>
-              <div class="b3 deco" style="--w:56px;--d:56px;--h:150px;--c:#4a3a28;--wc:rgba(240,166,60,.16);left:20px;top:246px">
-                <div class="f top"></div><div class="f n win"></div><div class="f s win"></div><div class="f w3 win"></div><div class="f e3 win"></div>
-              </div>
-
-              <!-- ============ ARÉNA: lépcsős kolosszeum, kapuval és pilonokkal ============ -->
-              <div class="b3 main" style="--c:#d8442e;--wc:rgba(216,68,46,.38);--h:150px;left:88px;top:96px" onclick="switchScreen('arena')">
-                <div class="p" style="--w:190px;--d:190px;--h:64px">
-                  <div class="f top"></div><div class="f n win"></div>
-                  <div class="f s win"><div class="dr" style="width:46px;height:50px"></div></div>
-                  <div class="f w3 win"></div>
-                  <div class="f e3 win"><div class="dr"></div></div>
-                </div>
-                <div class="p" style="--w:140px;--d:140px;--h:34px;left:25px;top:25px;transform:translateZ(64px)">
-                  <div class="f top"></div><div class="f n win"></div><div class="f s win"></div><div class="f w3 win"></div><div class="f e3 win"></div>
-                </div>
-                <div class="p" style="--w:84px;--d:84px;--h:22px;left:53px;top:53px;transform:translateZ(98px)">
-                  <div class="f top"></div><div class="f n"></div><div class="f s"></div><div class="f w3"></div><div class="f e3"></div>
-                </div>
-                <div class="p" style="--w:16px;--d:16px;--h:120px;left:-6px;top:-6px">
-                  <div class="f top"></div><div class="f n"></div><div class="f s"></div><div class="f w3"></div><div class="f e3"></div>
-                </div>
-                <div class="p" style="--w:16px;--d:16px;--h:120px;left:180px;top:-6px">
-                  <div class="f top"></div><div class="f n"></div><div class="f s"></div><div class="f w3"></div><div class="f e3"></div>
-                </div>
-                <div class="p" style="--w:16px;--d:16px;--h:120px;left:-6px;top:180px">
-                  <div class="f top"></div><div class="f n"></div><div class="f s"></div><div class="f w3"></div><div class="f e3"></div>
-                </div>
-                <div class="p" style="--w:16px;--d:16px;--h:120px;left:180px;top:180px">
-                  <div class="f top"></div><div class="f n"></div><div class="f s"></div><div class="f w3"></div><div class="f e3"></div>
-                </div>
-                <div class="beacon" style="--bz:146px"></div>
-                <div class="b3-label">ARÉNA<small>⚔ harc és dicsőség</small></div>
-              </div>
-
-              <!-- ============ FEKETEPIAC: bazár előtetővel, tetőklímákkal ============ -->
-              <div class="b3 main" style="--c:#ffd24d;--wc:rgba(255,210,77,.34);--h:110px;left:444px;top:120px" onclick="switchScreen('shop')">
-                <div class="p" style="--w:170px;--d:140px;--h:52px">
-                  <div class="f top"></div><div class="f n win"></div>
-                  <div class="f s win"><div class="dr" style="width:34px;height:40px"></div></div>
-                  <div class="f w3 win"></div>
-                  <div class="f e3 win"><div class="dr"></div></div>
-                </div>
-                <div class="p awn" style="--w:182px;--d:30px;--h:7px;left:-6px;top:134px;transform:translateZ(36px)">
-                  <div class="f top"></div><div class="f n"></div><div class="f s"></div><div class="f w3"></div><div class="f e3"></div>
-                </div>
-                <div class="p dark" style="--w:28px;--d:20px;--h:13px;left:22px;top:18px;transform:translateZ(52px)">
-                  <div class="f top"></div><div class="f n"></div><div class="f s"></div><div class="f w3"></div><div class="f e3"></div>
-                </div>
-                <div class="p dark" style="--w:24px;--d:18px;--h:10px;left:118px;top:84px;transform:translateZ(52px)">
-                  <div class="f top"></div><div class="f n"></div><div class="f s"></div><div class="f w3"></div><div class="f e3"></div>
-                </div>
-                <div class="p" style="--w:14px;--d:14px;--h:92px;left:162px;top:-10px">
-                  <div class="f top"></div><div class="f n"></div><div class="f s"></div><div class="f w3"></div><div class="f e3"></div>
-                </div>
-                <div class="beacon" style="--bz:104px"></div>
-                <div class="b3-label">PIACTÉR<small>💰 fegyver · páncél · amulett</small></div>
-              </div>
-
-              <!-- ============ KIBERKLINIKA: kórház világító kereszttel ============ -->
-              <div class="b3 main" style="--c:#7dc95e;--wc:rgba(125,201,94,.32);--h:160px;left:96px;top:444px" onclick="switchScreen('training')">
-                <div class="p" style="--w:180px;--d:150px;--h:58px">
-                  <div class="f top"></div><div class="f n win"></div>
-                  <div class="f s win"><div class="dr" style="width:36px;height:42px"></div></div>
-                  <div class="f w3 win"></div>
-                  <div class="f e3 win"><div class="dr"></div></div>
-                </div>
-                <div class="p" style="--w:54px;--d:54px;--h:36px;left:63px;top:48px;transform:translateZ(58px)">
-                  <div class="f top"></div><div class="f n win"></div><div class="f s win"></div><div class="f w3 win"></div><div class="f e3 win"></div>
-                </div>
-                <div class="p glow" style="--w:12px;--d:12px;--h:34px;left:84px;top:69px;transform:translateZ(100px)">
-                  <div class="f top"></div><div class="f n"></div><div class="f s"></div><div class="f w3"></div><div class="f e3"></div>
-                </div>
-                <div class="p glow" style="--w:36px;--d:12px;--h:12px;left:72px;top:69px;transform:translateZ(111px)">
-                  <div class="f top"></div><div class="f n"></div><div class="f s"></div><div class="f w3"></div><div class="f e3"></div>
-                </div>
-                <div class="p dark" style="--w:26px;--d:18px;--h:10px;left:18px;top:112px;transform:translateZ(58px)">
-                  <div class="f top"></div><div class="f n"></div><div class="f s"></div><div class="f w3"></div><div class="f e3"></div>
-                </div>
-                <div class="b3-label">ISPOTÁLY<small>🧪 edzés · gyógyulás</small></div>
-              </div>
-
-              <!-- ============ RANGLISTA: lépcsős felhőkarcoló antennával ============ -->
-              <div class="b3 main" style="--c:#a06bd6;--wc:rgba(160,107,214,.36);--h:250px;left:452px;top:436px" onclick="switchScreen('ranking')">
-                <div class="p" style="--w:150px;--d:150px;--h:84px">
-                  <div class="f top"></div><div class="f n win"></div>
-                  <div class="f s win"><div class="dr" style="width:32px;height:40px"></div></div>
-                  <div class="f w3 win"></div>
-                  <div class="f e3 win"><div class="dr"></div></div>
-                </div>
-                <div class="p" style="--w:112px;--d:112px;--h:62px;left:19px;top:19px;transform:translateZ(84px)">
-                  <div class="f top"></div><div class="f n win"></div><div class="f s win"></div><div class="f w3 win"></div><div class="f e3 win"></div>
-                </div>
-                <div class="p" style="--w:72px;--d:72px;--h:48px;left:39px;top:39px;transform:translateZ(146px)">
-                  <div class="f top"></div><div class="f n win"></div><div class="f s win"></div><div class="f w3 win"></div><div class="f e3 win"></div>
-                </div>
-                <div class="p" style="--w:8px;--d:8px;--h:52px;left:71px;top:71px;transform:translateZ(194px)">
-                  <div class="f top"></div><div class="f n"></div><div class="f s"></div><div class="f w3"></div><div class="f e3"></div>
-                </div>
-                <div class="beacon" style="--bz:252px"></div>
-                <div class="b3-label">RANGLISTA<small>🏆 top bajnokok</small></div>
-              </div>
-            </div>
-            <div class="c3-fog"></div>
-            <div class="c3-hint">↖ mozgasd az egeret a város felett</div>
           </div>
           <div class="divider"></div>
           <div id="overviewNews" style="font-size:14px;color:var(--dim);line-height:1.85"></div>
@@ -1418,10 +1258,6 @@ const SLOT_MODEL = {
   weapon: 'models/items/sword.glb', armor: 'models/items/armor.glb',
   helmet: 'models/items/helmet.glb', boots: 'models/items/boots.glb',
   accessory: 'models/items/cloak.glb', implant: 'models/items/amulet.glb',
-};
-const VARIANT_MODEL = {
-  humanoid: 'models/Skeleton_Rogue.glb', heavy: 'models/Skeleton_Warrior.glb',
-  drone: 'models/Skeleton_Mage.glb', beast: 'models/Skeleton_Minion.glb',
 };
 const SKIN_MODEL = {
   ronin: 'models/Knight.glb', bruiser: 'models/Barbarian.glb',
@@ -1874,8 +1710,8 @@ async function renderClan() {
         <div class="c-title">KLÁN KASSZA: <span style="color:var(--gold)">${clan.gold || 0}💰</span></div>
         <div class="c-sub">Adományozz aranyat a kasszába — ebből fejlesztheti a vezető a klánt.</div>
         <div style="display:flex;gap:6px;margin-top:8px">
-          <input id="clanDonateAmt" type="number" min="1" placeholder="arany" style="width:90px;background:rgba(0,0,0,.5);border:1px solid var(--border);color:var(--text);padding:8px">
-          <button class="act gold" onclick="game.donateClanUi()">ADOMÁNYOZÁS</button>
+          <input id="clanDonateAmt" type="number" min="1" placeholder="arany" style="flex:1;min-width:0;background:rgba(0,0,0,.5);border:1px solid var(--border);color:var(--text);padding:8px">
+          <button class="act gold" onclick="game.donateClanUi()" style="flex-shrink:0">ADOMÁNYOZÁS</button>
         </div>
       </div>
       ${isLeader ? `
@@ -2350,23 +2186,25 @@ function renderRankingContent(rows) {
   }
 
   // 3D dobogó a top 3-nak
+  // középkori kő-dobogó (top 3) — a legmagasabb középen (2. · 1. · 3. elrendezés)
   const medals = ['🥇', '🥈', '🥉'];
   const podColors = ['#ffd24d', '#c9d4f2', '#d08a4d'];
-  const podPos = [
-    { l: 112, t: 112, s: 96, h: 92 },
-    { l: 16,  t: 204, s: 86, h: 58 },
-    { l: 208, t: 24,  s: 86, h: 38 },
-  ];
-  $('podiumWrap').innerHTML = `<div class="podium"><div class="pod-world">
-    <div class="pod-ground"></div>
-    ${all.slice(0, 3).map((r, i) => { const p = podPos[i]; return `
-      <div class="b3" style="--c:${podColors[i]};--wc:${podColors[i]}44;--h:${p.h}px;left:${p.l}px;top:${p.t}px">
-        <div class="p" style="--w:${p.s}px;--d:${p.s}px;--h:${p.h}px">
-          <div class="f top"></div><div class="f n win"></div><div class="f s win"></div><div class="f w3 win"></div><div class="f e3 win"></div>
-        </div>
-        <div class="b3-label" style="font-size:11px">${medals[i]} ${r.name}${r.me ? ' (TE)' : ''}<small>⭐ ${r.fame} hírnév</small></div>
-      </div>`; }).join('')}
-  </div></div>`;
+  const podH = [150, 112, 88];
+  const podOrder = [1, 0, 2];
+  $('podiumWrap').innerHTML = `<div class="podium">${podOrder.map(rank => {
+    const r = all[rank];
+    if (!r) return '';
+    return `<div class="pod-col">
+      <div class="pod-fig">
+        <span class="pod-medal">${medals[rank]}</span>
+        <span class="pod-name">${r.name}${r.me ? ' (TE)' : ''}</span>
+        <span class="pod-fame">⭐ ${r.fame}</span>
+      </div>
+      <div class="pod-block" style="--pc:${podColors[rank]};height:${podH[rank]}px">
+        <span class="pod-rank">${rank + 1}</span>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
 
   $('rankBody').innerHTML = all.map((r, pos) => `
     <tr class="${r.me ? 'me' : ''}">
@@ -2447,7 +2285,7 @@ function renderOpponents() {
   $('opponentList').innerHTML = ops.map((o, i) => `
     <div class="card tier-${o.tier}">
       ${canSnap() && window.Battle3D
-        ? snapImg(VARIANT_MODEL[Battle3D.variantFor(o.emoji)] || VARIANT_MODEL.humanoid, 'snap-opp', 0.5)
+        ? snapImg(Battle3D.enemyModelUrl(o.emoji, o.name), 'snap-opp', 0.5)
         : `<div style="font-size:34px;text-align:center;filter:drop-shadow(0 0 8px rgba(216,68,46,.5))">${o.emoji}</div>`}
       <div class="mini-disc"></div>
       <div class="c-title" style="text-align:center">${o.name}</div>
@@ -2464,7 +2302,7 @@ function renderOpponents() {
   $('opponentList').innerHTML += `
     <div class="card boss-card">
       ${canSnap() && window.Battle3D
-        ? snapImg(VARIANT_MODEL[Battle3D.variantFor(boss.emoji)] || VARIANT_MODEL.heavy, 'snap-boss', 0.5)
+        ? snapImg(Battle3D.enemyModelUrl(boss.emoji, boss.name), 'snap-boss', 0.5)
         : `<div style="font-size:38px;text-align:center;filter:drop-shadow(0 0 10px rgba(216,68,46,.7))">${boss.emoji}</div>`}
       <div class="mini-disc"></div>
       <div class="c-title" style="text-align:center;color:var(--red);text-shadow:0 0 10px rgba(216,68,46,.5)">${boss.name}</div>
@@ -2524,7 +2362,7 @@ function beginCombat(enemy, opts) {
   $('combatView').dataset.loc = locId;
   $('combatTitle').textContent = isPvpFight ? 'PÁRBAJ — BAJNOKOK HARCA' : 'ARÉNAHARC — ' + currentLocation().name.toUpperCase();
   if (window.Battle3D) Battle3D.start({
-    variant: Battle3D.variantFor(enemy.emoji || '💀'), locId, skin: state.skin,
+    enemyEmoji: enemy.emoji || '💀', locId, skin: state.skin,
     enemyScale: enemy.boss ? 1.35 : 1, enemySkin: enemy.enemySkin || null,
     enemyName: enemy.name,
   });
@@ -3257,23 +3095,6 @@ document.addEventListener('mouseout', e => {
   if (card && !(e.relatedTarget && card.contains(e.relatedTarget))) card.style.transform = '';
 });
 
-/* 3D város — egér-parallax kamera */
-(function () {
-  const c3 = document.getElementById('city3d');
-  const world = document.getElementById('c3World');
-  if (!c3 || !world) return;
-  c3.addEventListener('mousemove', e => {
-    const r = c3.getBoundingClientRect();
-    const nx = (e.clientX - r.left) / r.width - 0.5;
-    const ny = (e.clientY - r.top) / r.height - 0.5;
-    world.style.setProperty('--rz', (45 + nx * 14) + 'deg');
-    world.style.setProperty('--rx', (58 - ny * 10) + 'deg');
-  });
-  c3.addEventListener('mouseleave', () => {
-    world.style.setProperty('--rz', '45deg');
-    world.style.setProperty('--rx', '58deg');
-  });
-})();
 
 (async function bootstart() {
   // a cgsdk.js defer-szkript az inline kód UTÁN fut le — kis pollozással bevárjuk

@@ -7,6 +7,7 @@
 window.City3D = (function () {
   let renderer, scene, camera, stage, labelLayer;
   let running = false, lastT = 0, azim = 2.3, azTarget = 2.3;
+  let perfLow = false;   // mobil/kis képernyő: kevesebb fény + alacsonyabb pixelRatio
   let dragging = false, dragX = 0, moved = 0;
   let raycaster, pointer = { x: -2, y: -2 };
   let torchLights = [], embers = [], flames = [], banners = [];
@@ -15,29 +16,54 @@ window.City3D = (function () {
 
   const HERO_MODEL = { ronin: 'models/Knight.glb', bruiser: 'models/Barbarian.glb', netrunner: 'models/Mage.glb', zsoldos: 'models/Rogue_Hooded.glb' };
 
-  /* fő (kattintható) épületek */
+  /* fő (kattintható) épületek — a KÖR körül, kifelé tolva (nem lógnak a térbe) */
   const BUILDINGS = [
-    { screen: 'arena',    label: 'ARÉNA',     sub: '⚔ harc és dicsőség', color: 0xd8442e, file: 'models/city/castle.glb',      h: 5.2, x: -6.5, z: -5.0 },
-    { screen: 'shop',     label: 'PIACTÉR',   sub: '💰 vásár',           color: 0xffd24d, file: 'models/city/fantasy_inn.glb',  h: 3.6, x:  6.8, z: -4.6 },
-    { screen: 'training', label: 'ISPOTÁLY',  sub: '🧪 gyógyír',         color: 0x7dc95e, file: 'models/city/fantasy_house.glb',h: 3.2, x: -7.2, z:  4.6 },
-    { screen: 'ranking',  label: 'RANGLISTA', sub: '🏆 a nagy torony',   color: 0xa06bd6, file: 'models/city/tower_house.glb',  h: 5.6, x:  6.8, z:  5.0 },
+    { screen: 'arena',    label: 'ARÉNA',     sub: '⚔ harc és dicsőség', color: 0xd8442e, file: 'models/city/castle.glb',      h: 5.2, x: -8.6, z: -8.2 },
+    { screen: 'shop',     label: 'PIACTÉR',   sub: '💰 vásár',           color: 0xffd24d, file: 'models/city/fantasy_inn.glb',  h: 3.6, x:  8.6, z: -8.2 },
+    { screen: 'training', label: 'ISPOTÁLY',  sub: '🧪 gyógyír',         color: 0x7dc95e, file: 'models/city/fantasy_house.glb',h: 3.2, x: -8.6, z:  8.2 },
+    { screen: 'ranking',  label: 'RANGLISTA', sub: '🏆 a nagy torony',   color: 0xa06bd6, file: 'models/city/tower_house.glb',  h: 5.6, x:  8.6, z:  8.2 },
   ];
 
-  /* díszlet (nem kattintható) */
+  /* díszlet-épületek (nem kattintható) — a kör külső gyűrűjén, az épületek közti résekben */
   const DECOR = [
-    { file: 'models/city/blacksmith.glb',   h: 3.0, x: -11.5, z: -0.5, r: 1.2 },
-    { file: 'models/city/stable.glb',       h: 2.6, x:  11.5, z: -1.0, r: -1.2 },
-    { file: 'models/city/market_stand.glb', h: 1.7, x:  3.6,  z: -7.0, r: 0.2 },
-    { file: 'models/city/market_stand.glb', h: 1.7, x:  7.6,  z: -7.2, r: -0.3 },
-    { file: 'models/city/cart.glb',         h: 1.3, x:  2.8,  z:  6.6, r: 2.4 },
-    { file: 'models/city/cart.glb',         h: 1.3, x: -3.0,  z: -6.8, r: 0.6 },
-    { file: 'models/city/barrel.glb',       h: 0.8, x:  5.4,  z: -6.2, r: 0 },
-    { file: 'models/city/barrel.glb',       h: 0.8, x:  6.0,  z: -6.0, r: 0.5 },
-    { file: 'models/city/barrel.glb',       h: 0.8, x: -10.2, z:  1.2, r: 0 },
-    { file: 'models/city/watch_tower.glb',  h: 4.2, x: -3.4,  z: -12.5, r: 0 },
-    { file: 'models/city/watch_tower.glb',  h: 4.2, x:  3.4,  z: -12.5, r: 0 },
+    { file: 'models/city/blacksmith.glb',   h: 3.0, x: -13.0, z:  0.0, r: 1.4 },   // Ny
+    { file: 'models/city/stable.glb',       h: 2.6, x:  13.0, z:  0.0, r: -1.4 },  // K
+    { file: 'models/city/watch_tower.glb',  h: 4.2, x: -3.4,  z: -12.8, r: 0 },    // kapu bal
+    { file: 'models/city/watch_tower.glb',  h: 4.2, x:  3.4,  z: -12.8, r: 0 },    // kapu jobb
+    { file: 'models/city/market_stand.glb', h: 1.7, x:  4.6,  z: -11.5, r: 0.2 },
+    { file: 'models/city/market_stand.glb', h: 1.7, x:  7.6,  z: -11.8, r: -0.3 },
+    { file: 'models/city/cart.glb',         h: 1.3, x: -2.4,  z:  12.2, r: 2.4 },
+    { file: 'models/city/cart.glb',         h: 1.3, x:  2.6,  z:  12.0, r: 0.6 },
+    { file: 'models/city/barrel.glb',       h: 0.8, x:  5.8,  z: -10.6, r: 0 },
+    { file: 'models/city/barrel.glb',       h: 0.8, x: -12.4, z:  2.6, r: 0 },
+    { file: 'models/env/hex/flag_yellow.glb', h: 1.6, x: 6.6,  z: -10.9, r: 0 },
+    { file: 'models/env/hex/crate_A_big.glb', h: 0.9, x: -12.8, z: -2.4, r: 0.4 },
+    { file: 'models/env/hex/waterlily_A.glb', h: 0.15, x: 0.7, z:  0.8,  r: 0 },
   ];
-  const FENCES = [[-9, 8, 0], [-6.5, 8.3, 0], [9, 8, 0], [6.5, 8.3, 0], [-9.5, -8, 0.4], [9.5, -8, -0.4]];
+  const FENCES = [[-11.5, 6.5, 0.3], [-7.5, 11.5, 0.5], [11.5, 6.5, -0.3], [7.5, 11.5, -0.5], [-11.5, -6.5, -0.3], [11.5, -6.5, 0.3]];
+
+  /* természet-dísz a kör körül (KayKit CC0 — lásd models/env LICENSE fájlok) */
+  const NATURE_TREES = [
+    'models/env/nature/Tree_1_A_Color1.glb',
+    'models/env/nature/Tree_2_A_Color1.glb',
+    'models/env/nature/Tree_3_A_Color1.glb',
+  ];
+  const NATURE_BUSHES = [
+    'models/env/nature/Bush_2_A_Color1.glb',
+    'models/env/nature/Bush_4_A_Color1.glb',
+    'models/env/swamp/Bush_1_C_Color1.glb',
+  ];
+  const NATURE_ROCKS = [
+    'models/env/nature/Rock_1_A_Color1.glb',
+    'models/env/nature/Rock_3_A_Color1.glb',
+    'models/env/swamp/Rock_1_D_Color1.glb',
+    'models/env/swamp/Rock_2_C_Color1.glb',
+  ];
+  // nagyobb fák a külső peremen, az épületek közti résekben
+  const TREE_SPOTS = [
+    [-13.5, -6.5], [13.5, -6.5], [-13.5, 6.5], [13.5, 6.5],
+    [-8.5, 13.0], [8.5, 13.0], [0, 14.0], [-14.0, 0], [14.0, 0],
+  ];
 
   function threeOk() { return typeof THREE !== 'undefined' && !!THREE.GLTFLoader; }
   function mat(c, s) { return new THREE.MeshPhongMaterial({ color: c, shininess: s || 8, flatShading: true }); }
@@ -85,8 +111,11 @@ window.City3D = (function () {
     g.add(cyl(0.05, 0.06, 1.1, 6, mat(C.woodD), 0, 0.55, 0));
     const flame = cone(0.14, 0.4, 6, glow(0xff9a3c), 0, 1.25, 0);
     g.add(flame); flames.push(flame);
-    const L = new THREE.PointLight(0xff8a3c, 1.0, 8, 2);
-    L.position.set(0, 1.3, 0); g.add(L); torchLights.push(L);
+    // mobilon fény-költségvetés: max 6 dinamikus fáklyafény (a láng-mesh mindig látszik)
+    if (!perfLow || torchLights.length < 6) {
+      const L = new THREE.PointLight(0xff8a3c, 1.0, 8, 2);
+      L.position.set(0, 1.3, 0); g.add(L); torchLights.push(L);
+    }
     scene.add(g);
   }
   function bannerPole(x, y, z, color, h) {
@@ -95,12 +124,22 @@ window.City3D = (function () {
     const cloth = box(0.5, 0.66, 0.04, mat(color), 0.28, h / 2 - 0.1, 0);
     g.add(cloth); banners.push({ cloth, t: Math.random() * 6 }); scene.add(g);
   }
-  function treeCone(x, z) {
-    const g = new THREE.Group(); g.position.set(x, 0, z);
-    g.add(cyl(0.1, 0.15, 0.9, 6, mat(C.woodD), 0, 0.45, 0));
-    g.add(cone(0.6, 1.0, 7, mat(0x3c5a34), 0, 1.3, 0));
-    g.add(cone(0.46, 0.8, 7, mat(0x466b3c), 0, 1.75, 0));
-    scene.add(g);
+  /* természet-dísz elhelyezése: fák a peremen + bokor/kő gyűrű a főtér körül */
+  function placeNature() {
+    TREE_SPOTS.forEach((p, i) => {
+      placeModel({ file: NATURE_TREES[i % NATURE_TREES.length], h: 3.0 + (i % 3) * 0.5, x: p[0], z: p[1], r: i * 1.1 });
+    });
+    const bldAng = BUILDINGS.map(b => Math.atan2(b.z, b.x));
+    const R = 8.4, N = 26;
+    for (let i = 0; i < N; i++) {
+      const a = (i / N) * Math.PI * 2;
+      // az épületek bejáratát (±23°) hagyd szabadon
+      if (bldAng.some(ba => Math.abs(Math.atan2(Math.sin(a - ba), Math.cos(a - ba))) < 0.4)) continue;
+      const rr = R + ((i % 3) - 1) * 0.6;
+      const x = Math.cos(a) * rr, z = Math.sin(a) * rr;
+      if (i % 2 === 0) placeModel({ file: NATURE_BUSHES[i % NATURE_BUSHES.length], h: 0.6 + (i % 2) * 0.2, x, z, r: a });
+      else placeModel({ file: NATURE_ROCKS[i % NATURE_ROCKS.length], h: 0.48 + (i % 3) * 0.22, x, z, r: a * 1.3 });
+    }
   }
 
   function buildEnvironment() {
@@ -121,10 +160,9 @@ window.City3D = (function () {
       scene.add(box(0.42, 0.42, 0.7, wallM, i * 1.6 + 0.4, 2.75, -12));
     }
     scene.add(box(2.6, 2.1, 0.5, mat(C.woodD), 0, 1.05, -12));            // kapu
-    treeCone(-10, 6.5); treeCone(10.5, 6.8); treeCone(-11.5, 3.5); treeCone(11.6, 3.8); treeCone(-9.5, -5); treeCone(9.8, -5);
-    // fáklyák a főtér és a kapu mentén
+    // fáklyák a kapunál + a BELSŐ főtér gyűrűjén (az épületek elé ne kerüljenek)
     torch(-4.6, -11.2); torch(4.6, -11.2);
-    const tR = 7.2;
+    const tR = 5.0;
     for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2 + 0.5; torch(Math.cos(a) * tR, Math.sin(a) * tR); }
     // parázs
     const eg = new THREE.BoxGeometry(0.05, 0.05, 0.05), em = glow(0xff8a3c);
@@ -153,6 +191,7 @@ window.City3D = (function () {
     }
     for (const d of DECOR) placeModel(d);
     for (const [x, z, r] of FENCES) placeModel({ file: 'models/city/fence.glb', h: 0.8, x, z, r });
+    placeNature();
   }
 
   function placeHero(skinId) {
@@ -181,7 +220,8 @@ window.City3D = (function () {
     labelLayer = document.getElementById('cityLabels');
 
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    perfLow = Math.min(window.innerWidth, window.innerHeight) < 600;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, perfLow ? 1.5 : 2));
     if (THREE.sRGBEncoding) renderer.outputEncoding = THREE.sRGBEncoding;
     if (THREE.ACESFilmicToneMapping) { renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.15; }
     stage.appendChild(renderer.domElement);

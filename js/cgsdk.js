@@ -4,6 +4,14 @@ window.CG = (function () {
   let sdk = null, ok = false, fightCount = 0, wantsLoadingDone = false;
   let readyResolve;
   const ready = new Promise(r => { readyResolve = r; });
+
+  // a CG némítás-kapcsolóját tükrözzük a játékba (állapot + fejléc-ikon)
+  function applyCgMute(muted) {
+    if (!window.state) return;
+    state.muted = !!muted;
+    const m = document.getElementById('muteIco');
+    if (m) m.textContent = state.muted ? '🔇' : '🔊';
+  }
   async function init() {
     try {
       if (!window.CrazyGames) return;
@@ -13,8 +21,8 @@ window.CG = (function () {
       ok = true;
       try { sdk.game.loadingStart(); if (wantsLoadingDone) sdk.game.loadingStop(); } catch (e) {}
       const s = sdk.game.settings;
-      if (s && s.muteAudio && window.state) state.muted = true;
-      sdk.game.addSettingsChangeListener(ns => { if (ns.muteAudio && window.state) state.muted = true; });
+      if (s && s.muteAudio) applyCgMute(true);            // induláskor csak akkor némítunk, ha a CG kéri
+      sdk.game.addSettingsChangeListener(ns => applyCgMute(ns.muteAudio));  // kétirányú: a CG kapcsoló felülír
       // első CG-indításnál a meglévő localStorage-mentés átmásolása a data module-ba
       try {
         for (let i = 0; i < localStorage.length; i++) {
